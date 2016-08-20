@@ -1,9 +1,7 @@
 #ifndef MATRIXD_HPP
 #define MATRIXD_HPP
 
-#include <cstdio>
-#include <cstdlib>
-#include <string>
+#include "utils.hpp"
 
 /**
  * Operations on linearized square matrices.

@@ -1,10 +1,7 @@
 #ifndef VECI_HPP
 #define VECI_HPP
 
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <stdint.h>
+#include "utils.hpp"
 
 class Veci {
 public:
@@ -16,8 +13,7 @@ public:
 		m_free = true;
 	}
 
-	Veci(int* data, size_t size)
-		: m_data(data), m_size(size), m_free(false) { }
+	Veci(int* data, size_t size) : m_data(data), m_size(size), m_free(false) { }
 
 	~Veci() {
 		if (m_data && m_free) {

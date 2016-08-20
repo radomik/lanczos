@@ -1,11 +1,9 @@
 #include "TrMatrixd.hpp"
 #include "string_utils.hpp"
+#include "file_utils.hpp"
 #include <algorithm>
 #include <fstream>
-#include <cstring>
-#include <climits>
-#include <errno.h>
-#include <file_utils.hpp>
+
 
 /**
  * Print linearized reduced symmetric square matrix to file using Matlab syntax.

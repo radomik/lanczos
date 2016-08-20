@@ -1,7 +1,7 @@
 #ifndef STRING_UTILS_HPP
 #define STRING_UTILS_HPP
 
-#include <string>
+#include "utils.hpp"
 
 /// http://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
 namespace string_utils {

@@ -2,32 +2,24 @@
 #include "TrMatrixd.hpp"
 #include "Matrixd.hpp"
 #include "Vecd.hpp"
-#include <climits>
-#include <errno.h>
-#include <string.h>
-#include <file_utils.hpp>
-#include <mrrr.hpp>
+#include "utils.hpp"
+#include "file_utils.hpp"
+#include "mrrr.hpp"
 
-const char* __true = "true";
-const char* __false = "false";
-#define sbool(x) ((x) ? (__true) : (__false))
-
-static int arg2bool(bool& retval, int argc, char** argv, int argIndex) {
-	if (argIndex >= argc) {
-		fprintf(stderr, "%s: Invalid argument index %d (argc=%d)\n", __FUNCTION__, argIndex, argc);
-		return -1;
-	}
+struct Flags {
+	bool save_bin;
+	bool save_csv;
+	bool dbg;
 	
-	if (! strcasecmp(argv[argIndex], "true")) {
-		retval = true; return 0;
-	}
-	if (! strcasecmp(argv[argIndex], "false")) {
-		retval = false; return 0;
-	}
+	Flags() : save_bin(false), save_csv(false), dbg(false) { }
 	
-	fprintf(stderr, "%s: Invalid argument '%s' at index %d (expected either 'true' or 'false')\n", __FUNCTION__, argv[argIndex], argIndex);
-	return -1;
-}
+	int read(int argc, char** argv) {
+		if (arg2bool(save_bin, argc, argv, argc-3)) return 1;
+		if (arg2bool(save_csv, argc, argv, argc-2)) return 1;
+		if (arg2bool(dbg, argc, argv, argc-1)) return 1;
+		return 0;
+	}
+};
 
 static void main_lanczno(const double* A, size_t m, size_t n, const Vecd* startvec) {
 	double* ritz = new double[m];
@@ -40,8 +32,8 @@ static void main_lanczno(const double* A, size_t m, size_t n, const Vecd* startv
 }
 
 static int mat_csv2bin(int argc, char** argv) {
-	if (argc < 4) {
-		printf("Usage: %s mat_csv2bin <input CSV file> <output binary file>\n", argv[0]);
+	if (argc != 4) {
+		printf("Usage: %s %s <input CSV file> <output binary file>\n", argv[0], argv[1]);
 		return 1;
 	}
 
@@ -63,8 +55,8 @@ static int mat_csv2bin(int argc, char** argv) {
 }
 
 static int vec_csv2bin(int argc, char** argv) {
-	if (argc < 4) {
-		printf("Usage: %s vec_csv2bin <input CSV file> <output binary file>\n", argv[0]);
+	if (argc != 4) {
+		printf("Usage: %s %s <input CSV file> <output binary file>\n", argv[0], argv[1]);
 		return 1;
 	}
 
@@ -83,8 +75,8 @@ static int vec_csv2bin(int argc, char** argv) {
 }
 
 static int mat_rdbin(int argc, char** argv) {
-	if (argc < 3) {
-		printf("Usage: %s mat_rdbin <input binary file>\n", argv[0]);
+	if (argc != 3) {
+		printf("Usage: %s %s <input binary file>\n", argv[0], argv[1]);
 		return 1;
 	}
 	
@@ -97,19 +89,17 @@ static int mat_rdbin(int argc, char** argv) {
 	}
 	
 	TrMatrixd::print(A, n, stdout, "A");
-	
 	delete[] A;
 	return 0;
 }
 
 static int vec_rdbin(int argc, char** argv) {
-	if (argc < 3) {
-		printf("Usage: %s vec_rdbin <input binary file>\n", argv[0]);
+	if (argc != 3) {
+		printf("Usage: %s %s <input binary file>\n", argv[0], argv[1]);
 		return 1;
 	}
 	
 	Vecd v;
-	
 	if (v.readBin(argv[2]) != 0) {
 		fprintf(stderr, "%s: Error reading vector from bin file\n", __FUNCTION__);
 		return 1;
@@ -119,7 +109,9 @@ static int vec_rdbin(int argc, char** argv) {
 	return 0;
 }
 
-void lancno_init_work(const double* A, const Vecd& startvec, size_t n, size_t m, Vecd& a, Vecd& b, double& anorm, bool dbg) {
+void lancno_init_work(
+	const double* A, const Vecd& startvec, size_t n, size_t m, Vecd& a, Vecd& b, double& anorm, bool dbg) {
+	
 	Vecd v(n);
 	Vecd v2(n);
 	Vecd vt(n);
@@ -138,7 +130,9 @@ void lancno_init_work(const double* A, const Vecd& startvec, size_t n, size_t m,
 
 	// initial Lanczos iteration, m steps
 	for (uint32_t k = 0; ; ) {
-		if (dbg) fprintf(stderr, "for: k == %u\n", k);
+		if (dbg) {
+			fprintf(stderr, "for: k == %u\n", k);
+		}
 		if (k == 0) {
 			TrMatrixd::mulByVector(r, A, v);  // r{n} = a{n}{n} * v{n}
 		} else {
@@ -147,15 +141,23 @@ void lancno_init_work(const double* A, const Vecd& startvec, size_t n, size_t m,
 			Vecd::sub(r, rt, vt);              // r{n}  = rt{n} - vt{n}
 		}
 
-		if (dbg) r.print(stderr, "r");
+		if (dbg) {
+			r.print(stderr, "r");
+		}
 		a[k] = Vecd::dotProduct(v, r);  // a[k]{1} = SUM v[i]*r[i]
-		if (dbg) a.print(stderr, "a");
+		if (dbg) {
+			a.print(stderr, "a");
+		}
 
 		Vecd::mulByScalar(vt, v, a[k]); // vt{n}   = a[k]{1} * v{n}
 		Vecd::sub(r, r, vt);            // r{n}    = r{n} - vt{n}
-		if (dbg) r.print(stderr, "r");
+		if (dbg) {
+			r.print(stderr, "r");
+		}
 		b[k] = r.getNorm();             // b[k]{1} = |r{n}|
-		if (dbg) b.print(stderr, "b");
+		if (dbg) {
+			b.print(stderr, "b");
+		}
 
 		// estimate |A|_2 by |T|_1
 		if (k == 0) {
@@ -164,33 +166,39 @@ void lancno_init_work(const double* A, const Vecd& startvec, size_t n, size_t m,
 			anorm = std::max(anorm, b[k-1]+fabs(a[k])+b[k]);
 		}
 
-		if (dbg) fprintf(stderr, "anorm = %f\n\n", anorm);
+		if (dbg) {
+			fprintf(stderr, "anorm = %f\n\n", anorm);
+		}
 
-		if (++k == m) break;
+		if (++k == m) {
+			break;
+		}
 
 		// prepare next step, k = {1 ... m-1}
 		v2.set(v);                          // v2{n} = v{n}
-		if (dbg) v2.print(stderr, "v2");
+		if (dbg) {
+			v2.print(stderr, "v2");
+		}
 		Vecd::divByScalar(v, r, b[k-1]); // EACH_i v[i] = r[i]/b[k-1]
-		if (dbg) v.print(stderr, "v");
+		if (dbg) {
+			v.print(stderr, "v");
+		}
 	}
 }
 
 int lancno_init(int argc, char** argv) {
-	if (argc < 12) {
-		printf("Usage: %s lancno_init work_dir m a_name startvec_name a_vec_prx b_vec_prx anorm_prx save_bin save_csv dbg\n\n\
+	if (argc != 12) {
+		printf(
+	"Usage: %s %s work_dir m a_name startvec_name a_vec_prx b_vec_prx anorm_prx save_bin save_csv dbg\n\n\
 For example:\n\
-	%s lancno_init \"../data\" 200 \"A_n-48_g-10\" \"startvec_n-48\" \"a\" \"b\" \"anorm\" true true false\n",
-		argv[0], argv[0]
-		);
+	%s %s \"../data\" 200 \"A_n-48_g-10\" \"startvec_n-48\" \"a\" \"b\" \"anorm\" true true false\n",
+		argv[0], argv[1], argv[0], argv[1]);
 		return 1;
 	}
 	
 	// read flags
-	bool save_bin, save_csv, dbg;
-	if (arg2bool(save_bin, argc, argv, 9)) return 1;
-	if (arg2bool(save_csv, argc, argv, 10)) return 1;
-	if (arg2bool(dbg, argc, argv, 11)) return 1;
+	Flags f;
+	if (f.read(argc, argv) != 0) return 1;
 	
 	// read Lanczos iteration count (m)
 	uint32_t m;
@@ -229,13 +237,13 @@ For example:\n\
 	// output anorm
 	double anorm;
 	
-	lancno_init_work(A, startvec, n, m, a, b, anorm, dbg);
+	lancno_init_work(A, startvec, n, m, a, b, anorm, f.dbg);
 	delete[] A;
 	
 	char suffix[128];
 	snprintf(suffix, sizeof(suffix), "_n-%zu_m-%u", n, m);
 	
-	if (save_bin) {
+	if (f.save_bin) {
 		const std::string out_a_path = work_dir + file_utils::PATH_SEP + argv[6] + suffix + file_utils::EXT_BIN;
 		const std::string out_b_path = work_dir + file_utils::PATH_SEP + argv[7] + suffix + file_utils::EXT_BIN;
 		const std::string out_anorm_path = work_dir + file_utils::PATH_SEP + argv[8] + suffix + file_utils::EXT_BIN;
@@ -244,7 +252,7 @@ For example:\n\
 		b.saveBin(out_b_path.c_str());
 		serialization::saveBin(out_anorm_path, anorm);
 	}
-	if (save_csv) {
+	if (f.save_csv) {
 		const std::string out_a_path = work_dir + file_utils::PATH_SEP + argv[6] + suffix + file_utils::EXT_CSV;
 		const std::string out_b_path = work_dir + file_utils::PATH_SEP + argv[7] + suffix + file_utils::EXT_CSV;
 		const std::string out_anorm_path = work_dir + file_utils::PATH_SEP + argv[8] + suffix + file_utils::EXT_CSV;
@@ -258,20 +266,17 @@ For example:\n\
 }
 
 int main_mrrr(int argc, char** argv) {
-	if (argc < 10) {
-		printf("Usage: %s mrrr work_dir a_vec_name b_vec_name s_prx ritz_prx save_bin save_csv dbg\n\n\
+	if (argc != 10) {
+		printf("Usage: %s %s work_dir a_vec_name b_vec_name s_prx ritz_prx save_bin save_csv dbg\n\n\
 For example:\n\
-	%s mrrr \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" \"S\" \"ritz\" true true false\n",
-		argv[0], argv[0]
-		);
+	%s %s \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" \"S\" \"ritz\" true true false\n",
+		argv[0], argv[1], argv[0], argv[1]);
 		return 1;
 	}
 	
 	// read flags
-	bool save_bin, save_csv, dbg;
-	if (arg2bool(save_bin, argc, argv, 7)) return 1;
-	if (arg2bool(save_csv, argc, argv, 8)) return 1;
-	if (arg2bool(dbg, argc, argv, 9)) return 1;
+	Flags f;
+	if (f.read(argc, argv) != 0) return 1;
 	
 	const std::string work_dir = argv[2];
 	
@@ -293,11 +298,10 @@ For example:\n\
 	}
 	
 	size_t m = a.size();
-	
 	double* S = new double[m*m];
 	Vecd ritz(m);
 	
-	int ret = mrrr(ritz.data(), S, a, b);
+	int ret = mrrr(ritz.data(), S, a, b, f.dbg);
 	if (ret) {
 		fprintf(stderr, "%s: mrrr() failed with status %d\n", __FUNCTION__, ret);
 		delete[] S;
@@ -307,14 +311,14 @@ For example:\n\
 	char suffix[128];
 	snprintf(suffix, sizeof(suffix), "_m-%zu", m);
 	
-	if (save_bin) {
+	if (f.save_bin) {
 		const std::string out_s_path = work_dir + file_utils::PATH_SEP + argv[5] + suffix + file_utils::EXT_BIN;
 		const std::string out_ritz_path = work_dir + file_utils::PATH_SEP + argv[6] + suffix + file_utils::EXT_BIN;
 		
 		Matrixd::saveBin(out_s_path.c_str(), S, m);
 		ritz.saveBin(out_ritz_path.c_str());
 	}
-	if (save_csv) {
+	if (f.save_csv) {
 		const std::string out_s_path = work_dir + file_utils::PATH_SEP + argv[5] + suffix + file_utils::EXT_CSV;
 		const std::string out_ritz_path = work_dir + file_utils::PATH_SEP + argv[6] + suffix + file_utils::EXT_CSV;
 		
@@ -327,12 +331,11 @@ For example:\n\
 }
 
 int cmp_vec(int argc, char** argv) {
-	if (argc < 6) {
-		printf("Usage: %s cmp_vec work_dir x_vec_name y_vec_name eps\n\n\
+	if (argc != 6) {
+		printf("Usage: %s %s work_dir x_vec_name y_vec_name eps\n\n\
 For example:\n\
-	%s cmp_vec \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" 0.0001\n",
-		argv[0], argv[0]
-		);
+	%s %s \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" 0.0001\n",
+		argv[0], argv[1], argv[0], argv[1]);
 		return 1;
 	}
 	
@@ -369,12 +372,11 @@ For example:\n\
 }
 
 int cmp_mat(int argc, char** argv) {
-	if (argc < 6) {
-		printf("Usage: %s cmp_mat work_dir x_mat_name y_mat_name eps\n\n\
+	if (argc != 6) {
+		printf("Usage: %s %s work_dir x_mat_name y_mat_name eps\n\n\
 For example:\n\
-	%s cmp_mat \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" 0.0001\n",
-		argv[0], argv[0]
-		);
+	%s %s \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" 0.0001\n",
+		argv[0], argv[1], argv[0], argv[1]);
 		return 1;
 	}
 	
@@ -415,22 +417,46 @@ For example:\n\
 }
 
 int main_rescon(int argc, char** argv) {
-	if (argc < 17) {
-		printf("Usage: %s rescon work_dir s_name ritz_name b_name anorm_name eps_name s_prx ritz_prx lres_prx cul_prx idx_prx mm_prx save_bin save_csv dbg\n\n\
+	if (argc != 17) {
+		printf(
+	"Usage: %s \
+%s \
+work_dir \
+s_name \
+ritz_name \
+b_name \
+anorm_name \
+eps_name \
+s_prx \
+ritz_prx \
+lres_prx \
+cul_prx \
+idx_prx \
+k_prx \
+save_bin \
+save_csv \
+dbg\
+\n\n\
 For example:\n\
-	%s mrrr \"../data\" \"a_n-48_m-100\" \"b_n-48_m-100\" \"S\" \"ritz\" true true false\n",
-		argv[0], argv[0]
-		);
+	%s %s \"../data\" \"c-S_m-200\" \"c-ritz_m-200\" \"c-b_n-48_m-200\" \"c-anorm_n-48_m-200\" \
+\"c-rescon-eps\" \"c-rescon-S\" \"c-rescon-ritz\" \"c-rescon-lres\" \"c-rescon-cul\" \"c-rescon-idx\" \
+\"c-rescon-k\" true true false\n",
+		argv[0], argv[1], argv[0], argv[1]);
 		return 1;
 	}
 	
 	// read flags
-	bool save_bin, save_csv, dbg;
-	if (arg2bool(save_bin, argc, argv, 7)) return 1;
-	if (arg2bool(save_csv, argc, argv, 8)) return 1;
-	if (arg2bool(dbg, argc, argv, 9)) return 1;
+	Flags f;
+	if (f.read(argc, argv) != 0) return 1;
 	
 	const std::string work_dir = argv[2];
+	
+	double* S;
+	size_t Sm
+	if (! (S=Matrixd::readCsvOrBin(work_dir, argv[3], &Sm))) {
+		fprintf(stderr, "%s: Error reading S matrix\n", __FUNCTION__);
+		return 1;
+	}
 	
 	Vecd a;
 	if (a.readCsvOrBin(work_dir, argv[3])) {
@@ -454,7 +480,7 @@ For example:\n\
 	double* S = new double[m*m];
 	Vecd ritz(m);
 	
-	int ret = mrrr(ritz.data(), S, a, b);
+	int ret = mrrr(ritz.data(), S, a, b, f.dbg);
 	if (ret) {
 		fprintf(stderr, "%s: mrrr() failed with status %d\n", __FUNCTION__, ret);
 		delete[] S;
@@ -464,14 +490,14 @@ For example:\n\
 	char suffix[128];
 	snprintf(suffix, sizeof(suffix), "_m-%zu", m);
 	
-	if (save_bin) {
+	if (f.save_bin) {
 		const std::string out_s_path = work_dir + file_utils::PATH_SEP + argv[5] + suffix + file_utils::EXT_BIN;
 		const std::string out_ritz_path = work_dir + file_utils::PATH_SEP + argv[6] + suffix + file_utils::EXT_BIN;
 		
 		Matrixd::saveBin(out_s_path.c_str(), S, m);
 		ritz.saveBin(out_ritz_path.c_str());
 	}
-	if (save_csv) {
+	if (f.save_csv) {
 		const std::string out_s_path = work_dir + file_utils::PATH_SEP + argv[5] + suffix + file_utils::EXT_CSV;
 		const std::string out_ritz_path = work_dir + file_utils::PATH_SEP + argv[6] + suffix + file_utils::EXT_CSV;
 		

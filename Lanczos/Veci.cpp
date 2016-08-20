@@ -1,7 +1,4 @@
 #include "Veci.hpp"
-#include <cstring>
-#include <cassert>
-#include <ctime>
 
 void Veci::set(const Veci& src, size_t count, size_t startIndex) {
 	if (count == ((size_t)-1)) {

@@ -5,14 +5,17 @@
 const double DOUBLE_EPS = 1e-13;
 
 /**
+ * Multiple Relatively Robust Representations for Tridiagonals.
+ * 
  * @param ritz Preallocated output array of size a.size() == m
  * @param S    Preallocated output array of size m*m
  * @param a    Main diagonal vector of size m
  * @param b    Super-/Subdiagonal vector of size m
+ * @param dbg  Print debug info
  *
  * @return 0 on success, non-zero value on error
  */
-int mrrr(double* ritz, double* S, const Vecd& a, const Vecd& b) {
+int mrrr(double* ritz, double* S, const Vecd& a, const Vecd& b, bool dbg) {
 	// matrix size
 	int m = a.size(); // m
 
@@ -50,17 +53,21 @@ int mrrr(double* ritz, double* S, const Vecd& a, const Vecd& b) {
 		&info );
 
 	if (info < 0) {
-		fprintf(stderr, "%s: [1] Input to dstegr had an illegal value [info: %d]\n", __FUNCTION__, info);
+		fprintf(stderr, "%s: [ERROR 1] Input to dstegr had an illegal value [info: %d]\n", __FUNCTION__, info);
 		return info;
 	}
 
-	fprintf(stderr, "%s: [1] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
+	if (dbg) {
+		fprintf(stderr, "%s: [1] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
+	}
 
 	lwork  = (int)work1[0];
 	liwork = iwork1[0];
 
-	fprintf(stderr, "%s: [2] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
-
+	if (dbg) {
+		fprintf(stderr, "%s: [2] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
+	}
+	
 	Vecd work(lwork);
 	Veci iwork(liwork);
 	work.zero();
@@ -72,8 +79,7 @@ int mrrr(double* ritz, double* S, const Vecd& a, const Vecd& b) {
 		&info );
 
 	if (info != 0) {
-		fprintf(stderr, "%s: [2] Input to dstegr had an illegal value [info: %d]\n", __FUNCTION__, info);
+		fprintf(stderr, "%s: [ERROR 2] Input to dstegr had an illegal value [info: %d]\n", __FUNCTION__, info);
 	}
-
 	return info;
 }

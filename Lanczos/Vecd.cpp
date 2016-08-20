@@ -1,11 +1,5 @@
 #include "Vecd.hpp"
-#include <cstring>
-#include <cassert>
-#include <ctime>
-#include <cstring>
-#include <climits>
-#include <errno.h>
-#include <file_utils.hpp>
+#include "file_utils.hpp"
 
 #define EACH_I(v, expr) \
 for (size_t i = 0; i < (v).m_size; i++) { \

@@ -1,11 +1,7 @@
 #ifndef VECD_HPP
 #define VECD_HPP
 
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <stdint.h>
-#include <string>
+#include "utils.hpp"
 
 class Vecd {
 public:
@@ -17,8 +13,7 @@ public:
 		m_free = true;
 	}
 
-	Vecd(double* data, size_t size)
-		: m_data(data), m_size(size), m_free(false) { }
+	Vecd(double* data, size_t size) : m_data(data), m_size(size), m_free(false) { }
 
 	~Vecd() {
 		if (m_data && m_free) {

@@ -5,9 +5,7 @@
 #include "Matrixd.hpp"
 #include "mrrr.hpp"
 #include "timing.h"
-#include <cassert>
 #include <algorithm>
-#include <cstring>
 
 /**
  * Lanczos with no reorthogonalization.
@@ -104,7 +102,7 @@ int lanczno(double* ritz, double* S, const double* A, size_t n, uint32_t m, cons
 
 	// tridiagonal matrix
 	reset_and_start_timer();
-	int info = mrrr(ritz, S, a, b);
+	int info = mrrr(ritz, S, a, b, true);
 
 	ts = get_elapsed_mcycles();
 	ts_total += ts;

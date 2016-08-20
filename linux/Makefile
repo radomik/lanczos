@@ -58,8 +58,11 @@ all:
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/main.cpp" -o "$(OBJ)/main.o"
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/Matrixd.cpp" -o "$(OBJ)/Matrixd.o"
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/mrrr.cpp" -o "$(OBJ)/mrrr.o"
+	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/Rescon.cpp" -o "$(OBJ)/Rescon.o"
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/string_utils.cpp" -o "$(OBJ)/string_utils.o"
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/TrMatrixd.cpp" -o "$(OBJ)/TrMatrixd.o"
+	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/utils.cpp" -o "$(OBJ)/utils.o"
+	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/Vecb.cpp" -o "$(OBJ)/Vecb.o"
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/Vecd.cpp" -o "$(OBJ)/Vecd.o"
 	$(CC) -c $(CFLAGS) $(INC) "$(SRC)/Veci.cpp" -o "$(OBJ)/Veci.o"
 	$(MAKE) link
@@ -72,8 +75,11 @@ link:
 "$(OBJ)/main.o" \
 "$(OBJ)/Matrixd.o" \
 "$(OBJ)/mrrr.o" \
+"$(OBJ)/Rescon.o" \
 "$(OBJ)/string_utils.o" \
 "$(OBJ)/TrMatrixd.o" \
+"$(OBJ)/utils.o" \
+"$(OBJ)/Vecb.o" \
 "$(OBJ)/Vecd.o" \
 "$(OBJ)/Veci.o" \
 -o "$(BINPATH)" $(LDPATH) $(LDFLAGS)
@@ -85,8 +91,11 @@ asm:
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/main.cpp" -o "$(ASM)/main.asm"
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/Matrixd.cpp" -o "$(ASM)/Matrixd.asm"
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/mrrr.cpp" -o "$(ASM)/mrrr.asm"
+	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/Rescon.cpp" -o "$(ASM)/Rescon.asm"
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/string_utils.cpp" -o "$(ASM)/string_utils.asm"
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/TrMatrixd.cpp" -o "$(ASM)/TrMatrixd.asm"
+	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/utils.cpp" -o "$(ASM)/utils.asm"
+	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/Vecb.cpp" -o "$(ASM)/Vecb.asm"
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/Vecd.cpp" -o "$(ASM)/Vecd.asm"
 	$(CC) -c $(AFLAGS) $(INC) "$(SRC)/Veci.cpp" -o "$(ASM)/Veci.asm"
 
@@ -96,8 +105,11 @@ clean:
 	if [ -w "$(OBJ)/main.o" ] ; then rm "$(OBJ)/main.o" ; fi
 	if [ -w "$(OBJ)/Matrixd.o" ] ; then rm "$(OBJ)/Matrixd.o" ; fi
 	if [ -w "$(OBJ)/mrrr.o" ] ; then rm "$(OBJ)/mrrr.o" ; fi
+	if [ -w "$(OBJ)/Rescon.o" ] ; then rm "$(OBJ)/Rescon.o" ; fi
 	if [ -w "$(OBJ)/string_utils.o" ] ; then rm "$(OBJ)/string_utils.o" ; fi
 	if [ -w "$(OBJ)/TrMatrixd.o" ] ; then rm "$(OBJ)/TrMatrixd.o" ; fi
+	if [ -w "$(OBJ)/utils.o" ] ; then rm "$(OBJ)/utils.o" ; fi
+	if [ -w "$(OBJ)/Vecb.o" ] ; then rm "$(OBJ)/Vecb.o" ; fi
 	if [ -w "$(OBJ)/Vecd.o" ] ; then rm "$(OBJ)/Vecd.o" ; fi
 	if [ -w "$(OBJ)/Veci.o" ] ; then rm "$(OBJ)/Veci.o" ; fi
 

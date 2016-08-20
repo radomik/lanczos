@@ -1,8 +1,7 @@
 #ifndef LANCZNO_HPP
 #define LANCZNO_HPP
 
-#include <cstdlib>
-#include <stdint.h>
+#include "utils.hpp"
 #include "Vecd.hpp"
 
 /**

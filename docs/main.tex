@@ -166,13 +166,13 @@ Dane wyjœciowe:
 \section{Residual estimation and removing non-converged and spurious Ritz values}
 
 \begin{lstlisting}[basicstyle=\ttfamily\small, caption=Matlab]
-function rescon(work_dir, s_name, ritz_name, b_name, anorm_name, eps_name, s_prx, ritz_prx, lres_prx, cul_prx, idx_prx, mm_prx);
->>> rescon('../data', 'c-S_m-200', 'c-ritz_m-200', 'm-b_n-48_m-200', 'm-anorm_n-48_m-200', 'm-rescon-eps', 'm-rescon-S', 'm-rescon-ritz', 'm-rescon-lres', 'm-rescon-cul', 'm-rescon-idx', 'm-rescon-mm');
+function rescon(work_dir, s_name, ritz_name, b_name, anorm_name, eps_name, s_prx, ritz_prx, lres_prx, cul_prx, idx_prx, k_prx);
+>>> rescon('../data', 'c-S_m-200', 'c-ritz_m-200', 'm-b_n-48_m-200', 'm-anorm_n-48_m-200', 'm-rescon-eps', 'm-rescon-S', 'm-rescon-ritz', 'm-rescon-lres', 'm-rescon-cul', 'm-rescon-idx', 'm-rescon-k');
 \end{lstlisting}
 
 \begin{lstlisting}[basicstyle=\ttfamily\small, caption=C++]
-void rescon(string work_dir, string s_name, string ritz_name, string b_name, string anorm_name, string eps_name, string s_prx, string ritz_prx, string lres_prx, string cul_prx, string idx_prx, string mm_prx, bool save_bin, bool save_csv, bool dbg);
->>> rescon("../data", "c-S_m-200", "c-ritz_m-200", "c-b_n-48_m-200", "c-anorm_n-48_m-200", "c-rescon-eps", "c-rescon-S", "c-rescon-ritz", "c-rescon-lres", "c-rescon-cul", "c-rescon-idx", "c-rescon-mm", true, true, false);
+void rescon(string work_dir, string s_name, string ritz_name, string b_name, string anorm_name, string eps_name, string s_prx, string ritz_prx, string lres_prx, string cul_prx, string idx_prx, string k_prx, bool save_bin, bool save_csv, bool dbg);
+>>> rescon("../data", "c-S_m-200", "c-ritz_m-200", "c-b_n-48_m-200", "c-anorm_n-48_m-200", "c-rescon-eps", "c-rescon-S", "c-rescon-ritz", "c-rescon-lres", "c-rescon-cul", "c-rescon-idx", "c-rescon-k", true, true, false);
 \end{lstlisting}
 
 Parametry wejœciowe:
@@ -183,21 +183,21 @@ Parametry wejœciowe:
 	\item \texttt{anorm\_name} -- nazwa pliku z wartoœci¹ $anorm$ (skalar) otrzyman¹ w kroku LANCNO\_INIT
 	\item \texttt{eps\_name} -- nazwa pliku z wartoœci¹ $eps$ (skalar) -- dla Matlaba jest to \texttt{2.2204e-16}
 	\item \texttt{s\_prx} -- prefiks nazwy docelowego pliku z niesymetryczn¹ macierz¹ $S$ o rozmiarze $m$
-	\item \texttt{ritz\_prx} -- prefiks nazwy docelowego pliku z wektorem $ritz$ (rozmiar $m$)
-	\item \texttt{lres\_prx} -- prefiks nazwy docelowego pliku z wektorem $lres$ (rozmiar $m$)
-	\item \texttt{cul\_prx} -- prefiks nazwy docelowego pliku z wektorem $cul$ (rozmiar $m$)
+	\item \texttt{ritz\_prx} -- prefiks nazwy docelowego pliku z wektorem $ritz$ (rozmiar ${k,\,k \le m}$)
+	\item \texttt{lres\_prx} -- prefiks nazwy docelowego pliku z wektorem $lres$ (rozmiar ${k,\,k \le m}$)
+	\item \texttt{cul\_prx} -- prefiks nazwy docelowego pliku z wektorem $cul$ (rozmiar ${k,\,k \le m}$)
 	\item \texttt{idx\_prx} -- prefiks nazwy docelowego pliku z wektorem zero-jedynkowym $idx$ (rozmiar $m$)
-	\item \texttt{mm\_prx} -- prefiks nazwy docelowego pliku z wartoœci¹ $mm$ (skalar)
+	\item \texttt{k\_prx} -- prefiks nazwy docelowego pliku z wartoœci¹ $k$ (skalar)
 \end{itemize}
 
 Dane wyjœciowe:
 \begin{itemize}
-	\item \texttt{<work\_dir>/<s\_prx>\_m-<m>.\{csv|bin\}} -- plik z niesymetryczn¹ macierz¹ $S$ (rozmiar $m$).
-	\item \texttt{<work\_dir>/<ritz\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $ritz$ (rozmiar $m$).
-	\texttt{<work\_dir>/<lres\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $lres$ (rozmiar $m$).
-	\texttt{<work\_dir>/<cul\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $cul$ (rozmiar $m$).
-	\texttt{<work\_dir>/<idx\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $idx$ (rozmiar $m$).
-	\texttt{<work\_dir>/<mm\_prx>\_m-<m>.\{csv|bin\}} -- plik z wartoœci¹ $mm$ (skalar).
+	\item \texttt{<work\_dir>/<s\_prx>\_m-<m>\_k-<k>.\{csv|bin\}} -- plik z niesymetryczn¹ macierz¹ $S$ (rozmiar $m$).
+	\item \texttt{<work\_dir>/<ritz\_prx>\_m-<m>\_k-<k>.\{csv|bin\}} -- plik z wektorem $ritz$ ((rozmiar ${k,\,k \le m}$).
+	\texttt{<work\_dir>/<lres\_prx>\_m-<m>\_k-<k>.\{csv|bin\}} -- plik z wektorem $lres$ (rozmiar ${k,\,k \le m}$).
+	\texttt{<work\_dir>/<cul\_prx>\_m-<m>\_k-<k>.\{csv|bin\}} -- plik z wektorem $cul$ (rozmiar ${k,\,k \le m}$).
+	\texttt{<work\_dir>/<idx\_prx>\_m-<m>\_k-<k>.\{csv|bin\}} -- plik z wektorem $idx$ (rozmiar $m$).
+	\texttt{<work\_dir>/<k\_prx>\_m-<m>\_k-<k>.\{csv|bin\}} -- plik z wartoœci¹ $k$ (skalar).
 \end{itemize}
 
 \section{Resztê kodu podzieliæ na etapy:}

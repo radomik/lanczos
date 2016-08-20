@@ -1,6 +1,7 @@
 #ifndef TRMATRIXD_HPP
 #define TRMATRIXD_HPP
 
+#include "utils.hpp"
 #include "Vecd.hpp"
 
 /**

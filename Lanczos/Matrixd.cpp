@@ -1,12 +1,8 @@
 #include "Matrixd.hpp"
-#include <file_utils.hpp>
-#include <string_utils.hpp>
+#include "file_utils.hpp"
+#include "string_utils.hpp"
 #include <algorithm>
 #include <fstream>
-#include <cstring>
-#include <climits>
-#include <errno.h>
-#include <stdint.h>
 
 /**
  * Print linearized square matrix to file using Matlab syntax.
