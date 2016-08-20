@@ -1,0 +1,50 @@
+# Include debugging symbols for GDB (Linux, MinGW only) ?
+DEBUG_BUILD   := yes
+
+# Compiler command
+CC             := g++
+
+# make command
+MAKE           := make
+
+# Common CFLAGS
+CFLAGS         := -Wall -march=native -mtune=native -pipe
+
+# Use _LINUX for Linux and _WINDOWS for Windows
+# Note: Use _WINDOWS for Microsoft Visual Studio
+CFLAGS         += -D _LINUX
+
+ifeq ("$(DEBUG_BUILD)","yes")
+	CFLAGS += -O0 -g -ggdb
+else
+	CFLAGS += -O2 -fomit-frame-pointer
+endif
+
+# LAPACK
+CFLAGS  += $(shell pkg-config --cflags lapack)
+LDFLAGS += $(shell pkg-config --libs lapack)
+
+# CFLAGS used for creating compiler generated assembler sources (GCC)
+AFLAGS         := $(CFLAGS) -S -masm=intel -fverbose-asm
+
+# Linker flags
+LDFLAGS        += -lm -lpthread
+
+# Linker search directories (prepended with -L each)
+LDPATH          :=
+
+# Include directories (prepended with -I each)
+INC             :=
+
+# Output binary path
+BINPATH         := lanczos
+
+# Source directory
+SRC             := ../Lanczos
+
+# *.o files directory
+OBJ            := obj
+
+# Directory for compiler generated assembler sources
+ASM            := asm
+

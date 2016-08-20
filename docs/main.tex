@@ -1,0 +1,299 @@
+\documentclass[a4paper, 12pt, oneside]{article}
+\usepackage[left=1.5cm, right=1.5cm, top=1.0cm, bottom=1.0cm, includefoot=true]{geometry}
+
+%% ustawienie kodowania plików .tex i jezyka dokumentu (common_lang)
+\usepackage[polish]{babel}
+\selectlanguage{polish}
+\usepackage[OT4]{polski}
+\usepackage[cp1250]{inputenc}
+
+%% dodawanie grafiki \includegraphics
+\usepackage[pdftex]{graphicx}
+
+%% wzory
+\usepackage{mathtools}
+
+%% ustawienia naglowkow tabel, rysunkow, itp
+\usepackage{caption}
+\DeclareCaptionLabelFormat{figp}{\textbf{Rys.~#2}}
+\DeclareCaptionLabelFormat{tabp}{\textbf{Tab.~#2}}
+\DeclareCaptionLabelFormat{lstp}{\textbf{Lst.~#2}}
+\captionsetup[figure]{labelformat=figp, labelsep=period, font={small}}
+\captionsetup[table]{labelformat=tabp, labelsep=period, font={small}}
+\captionsetup[lstlisting]{labelformat=lstp, labelsep=period, font={small}}
+
+%% ustawienia dotyczace tabel
+\usepackage{array}
+\usepackage[table]{xcolor}
+\usepackage{multirow}
+
+%% odstêpy miêdzy wierszami
+\usepackage{setspace}
+\setstretch{1.2}
+
+%% listingi
+\usepackage{listings}
+\DeclareCaptionFormat{myformat}{%
+  \colorbox{lightgray!30}{\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{#1#2#3}}
+} 
+\captionsetup[lstlisting]{
+	format=myformat
+}
+\lstset{
+	% choose the language of the code
+  	language=C++,                
+  	% the size of the fonts that are used for the code
+  	basicstyle=\ttfamily\footnotesize,      
+  	% where to put the line-numbers
+  	numbers=left,                   
+  	% the size of the fonts that are used for the line-numbers
+  	numberstyle=\footnotesize,      
+  	% the step between two line-numbers. If it is 1 each line will be numbered
+  	stepnumber=1,                   
+  	% how far the line-numbers are from the code
+  	numbersep=5pt,                  
+  	% choose the background color. You must add \usepackage{color}
+  	backgroundcolor=\color{white},  
+  	% show spaces adding particular underscores
+  	showspaces=false,               
+  	% underline spaces within strings
+  	showstringspaces=false,         
+  	% show tabs within strings adding particular underscores
+  	showtabs=false,         
+  	% adds a frame around the code        
+  	frame=single,       
+  	% sets default tabsize to N spaces    
+  	tabsize=4,          
+  	% sets the caption-position to bottom
+  	captionpos=t,           
+  	% sets automatic line breaking
+  	breaklines=true,        
+  	% sets if automatic breaks should only happen at whitespace
+  	breakatwhitespace=true,    
+  	% if you want to add a comment within your code
+  	escapeinside={/*@}{@*/},
+  	prebreak    = \space,
+  	postbreak   = \space
+}
+
+%% Klikalne linki dla \ref
+\usepackage{hyperref}
+
+%% wide page for side by side figures, tables, etc
+\usepackage{changepage}
+\newlength{\offsetpage}
+\setlength{\offsetpage}{1.0cm}
+\newenvironment{widepage}{\begin{adjustwidth}{-\offsetpage}{-\offsetpage}%
+		\addtolength{\textwidth}{2\offsetpage}}%
+	{\end{adjustwidth}}
+
+%% landscape pages
+\usepackage{pdflscape}
+
+\begin{document}
+	
+Wspólne informacje dotycz¹ce testowych funkcji, ich danych wejœciowych i wyjœciowych oraz sposobu wymiany danych opisano w sekcji \ref{sec:uwagi.do.implementacji}.
+	
+\section{Utworzenie testowych danych wejœciowych dla algorytmu Lanczos}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=Matlab]
+function init_data(work_dir, g, a_prx, startvec_prx);
+>>> init_data('../data', 10, 'A', 'startvec');
+\end{lstlisting}
+
+Parametry wejœciowe:
+\begin{itemize}
+	\item \texttt{g} -- parametr funkcji \texttt{numgrid() (MATLAB)} okreœlaj¹cy rozmiar danych wejœciowych
+	\item \texttt{a\_prx} -- prefiks nazwy docelowego pliku z symetryczn¹ macierz¹ $A$ (o rozmiarze $n$)
+	\item \texttt{startvec\_prx} -- prefiks nazwy docelowego pliku z wektorem startowym $startvec$ (o rozmiarze $n$)
+\end{itemize}
+
+Dane wyjœciowe:
+\begin{itemize}
+	\item \texttt{<work\_dir>/<a\_prx>\_n-<n>\_g-<g>.csv} -- plik CSV z macierz¹ symetryczn¹ $A$ o rozmiarze $n$ i parametrze u¿ytym dla \texttt{numgrid()} równym $g$.
+	\item \texttt{<work\_dir>/<startvec\_prx>\_n-<n>.csv} -- plik CSV z losowym znormalizowanym wektorem startowym $startvec$ o rozmiarze $n$.
+\end{itemize}
+
+\section{Pocz¹tkowa iteracja algorytmu Lanczos}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=Matlab]
+function lancno_init(work_dir, m, a_name, startvec_name, a_vec_prx, b_vec_prx, anorm_prx);
+>>> lancno_init('../data', 200, 'A_n-48_g-10', 'startvec_n-48', 'm-a', 'm-b', 'm-anorm');
+\end{lstlisting}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=C++]
+void lancno_init(string work_dir, uint32_t m, string a_name, string startvec_name, string a_vec_prx, string b_vec_prx, string anorm_prx, bool save_bin, bool save_csv, bool dbg);
+>>> lancno_init("../data", 200, "A_n-48_g-10", "startvec_n-48", "c-a", "c-b", "c-anorm", true, true, false);
+\end{lstlisting}
+
+Parametry wejœciowe:
+\begin{itemize}
+	\item \texttt{m} -- liczba iteracji
+	\item \texttt{a\_name} -- nazwa pliku z symetryczn¹ macierz¹ $A$ (o rozmiarze $n$)
+	\item \texttt{startvec\_name} -- nazwa pliku z wektorem startowym $startvec$ (o rozmiarze $n$)
+	\item \texttt{a\_vec\_prx} -- prefiks nazwy docelowego pliku z wektorem  $a$ (rozmiar $m$), zawieraj¹cym przek¹tn¹ macierzy $T$
+	\item \texttt{b\_vec\_prx} -- prefiks nazwy docelowego pliku z wektorem  $b$ (rozmiar $m$), zawieraj¹cym nad-/podprzek¹tn¹ macierzy $T$
+	\item \texttt{anorm\_prx} -- prefiks nazwy docelowego pliku z wartoœci¹ $anorm$ (skalar)
+\end{itemize}
+
+Dane wyjœciowe:
+\begin{itemize}
+	\item \texttt{<work\_dir>/<a\_vec\_prx>\_n-<n>\_m-<m>.\{csv|bin\}} -- plik z wektorem $a$ (rozmiar $m$).
+	\item \texttt{<work\_dir>/<b\_vec\_prx>\_n-<n>\_m-<m>.\{csv|bin\}} -- plik z wektorem $b$ (rozmiar $m$).
+	\item \texttt{<work\_dir>/<anorm\_prx>\_n-<n>\_m-<m>.\{csv|bin\}} -- plik z wartoœci¹ $anorm$ (skalar).
+\end{itemize}
+
+\section{Krok MRRR (Multiple Relatively Robust Representations for Tridiagonals)}
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=C++]
+void mrrr(string work_dir, string a_vec_name, string b_vec_name, string s_prx, string ritz_prx, bool save_bin, bool save_csv, bool dbg);
+>>> mrrr("../data", "c-a_n-48_m-100", "c-b_n-48_m-100", "c-S", "c-ritz", true, true, false);
+\end{lstlisting}
+
+Parametry wejœciowe:
+\begin{itemize}
+	\item \texttt{a\_vec\_name} -- nazwa pliku z wektorem $a$ (rozmiar $m$)
+	\item \texttt{b\_vec\_name} -- nazwa pliku z wektorem $b$ (rozmiar $m$)
+	\item \texttt{s\_prx} -- prefiks nazwy docelowego pliku z macierz¹ $S$ o rozmiarze $m$ (\textbf{macierz ta nie jest symetryczna})
+	\item \texttt{ritz\_prx} -- prefiks nazwy docelowego pliku z wektorem  $ritz$ (rozmiar $m$)
+\end{itemize}
+
+Dane wyjœciowe:
+\begin{itemize}
+	\item \texttt{<work\_dir>/<s\_prx>\_m-<m>.\{csv|bin\}} -- plik z niesymetryczn¹ macierz¹ $S$ (rozmiar $m$).
+	\item \texttt{<work\_dir>/<ritz\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $ritz$ (rozmiar $m$).
+\end{itemize}
+
+\section{Residual estimation and removing non-converged and spurious Ritz values}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=Matlab]
+function rescon(work_dir, s_name, ritz_name, b_name, anorm_name, eps_name, s_prx, ritz_prx, lres_prx, cul_prx, idx_prx, mm_prx);
+>>> rescon('../data', 'c-S_m-200', 'c-ritz_m-200', 'm-b_n-48_m-200', 'm-anorm_n-48_m-200', 'm-rescon-eps', 'm-rescon-S', 'm-rescon-ritz', 'm-rescon-lres', 'm-rescon-cul', 'm-rescon-idx', 'm-rescon-mm');
+\end{lstlisting}
+
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=C++]
+void rescon(string work_dir, string s_name, string ritz_name, string b_name, string anorm_name, string eps_name, string s_prx, string ritz_prx, string lres_prx, string cul_prx, string idx_prx, string mm_prx, bool save_bin, bool save_csv, bool dbg);
+>>> rescon("../data", "c-S_m-200", "c-ritz_m-200", "c-b_n-48_m-200", "c-anorm_n-48_m-200", "c-rescon-eps", "c-rescon-S", "c-rescon-ritz", "c-rescon-lres", "c-rescon-cul", "c-rescon-idx", "c-rescon-mm", true, true, false);
+\end{lstlisting}
+
+Parametry wejœciowe:
+\begin{itemize}
+	\item \texttt{s\_name} -- nazwa pliku z niesymetryczn¹ macierz¹ $S$ (rozmiar $m$) otrzyman¹ w kroku MRRR
+	\item \texttt{ritz\_name} -- nazwa pliku z wektorem $ritz$ (rozmiar $m$) otrzymanym w kroku MRRR
+	\item \texttt{b\_name} -- nazwa pliku z wektorem $b$ (rozmiar $m$) otrzymanym w kroku LANCNO\_INIT
+	\item \texttt{anorm\_name} -- nazwa pliku z wartoœci¹ $anorm$ (skalar) otrzyman¹ w kroku LANCNO\_INIT
+	\item \texttt{eps\_name} -- nazwa pliku z wartoœci¹ $eps$ (skalar) -- dla Matlaba jest to \texttt{2.2204e-16}
+	\item \texttt{s\_prx} -- prefiks nazwy docelowego pliku z niesymetryczn¹ macierz¹ $S$ o rozmiarze $m$
+	\item \texttt{ritz\_prx} -- prefiks nazwy docelowego pliku z wektorem $ritz$ (rozmiar $m$)
+	\item \texttt{lres\_prx} -- prefiks nazwy docelowego pliku z wektorem $lres$ (rozmiar $m$)
+	\item \texttt{cul\_prx} -- prefiks nazwy docelowego pliku z wektorem $cul$ (rozmiar $m$)
+	\item \texttt{idx\_prx} -- prefiks nazwy docelowego pliku z wektorem zero-jedynkowym $idx$ (rozmiar $m$)
+	\item \texttt{mm\_prx} -- prefiks nazwy docelowego pliku z wartoœci¹ $mm$ (skalar)
+\end{itemize}
+
+Dane wyjœciowe:
+\begin{itemize}
+	\item \texttt{<work\_dir>/<s\_prx>\_m-<m>.\{csv|bin\}} -- plik z niesymetryczn¹ macierz¹ $S$ (rozmiar $m$).
+	\item \texttt{<work\_dir>/<ritz\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $ritz$ (rozmiar $m$).
+	\texttt{<work\_dir>/<lres\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $lres$ (rozmiar $m$).
+	\texttt{<work\_dir>/<cul\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $cul$ (rozmiar $m$).
+	\texttt{<work\_dir>/<idx\_prx>\_m-<m>.\{csv|bin\}} -- plik z wektorem $idx$ (rozmiar $m$).
+	\texttt{<work\_dir>/<mm\_prx>\_m-<m>.\{csv|bin\}} -- plik z wartoœci¹ $mm$ (skalar).
+\end{itemize}
+
+\section{Resztê kodu podzieliæ na etapy:}
+
+\begin{enumerate}
+	\item distinguish the clusters of eigenvalues
+	\item reflect using Householder
+	\item compute eigenvectors
+\end{enumerate}
+
+Z których ka¿dy bêdzie zaimplementowany w Matlabie i C++.
+
+\section{Dodatkowe, pomocnicze funkcje w C++}
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=C++]
+bool cmp_vec(string work_dir, string x_vec_name, string y_vec_name, float eps);
+>>> cmp_vec("../data", "a_n-48", "b_n-48", 0.0001);
+\end{lstlisting}
+
+Parametry wejœciowe:
+\begin{itemize}
+	\item \texttt{x\_vec\_name} -- nazwa pliku z wektorem $x$
+	\item \texttt{y\_vec\_name} -- nazwa pliku z wektorem $y$
+	\item \texttt{eps} -- minimalna wartoœæ ró¿nicy miêdzy elementami wektora powoduj¹ca nierównoœæ
+\end{itemize}
+
+Zwracana wartoœæ okreœla czy wektory s¹ jednakowe (true) lub ró¿ne (false).
+
+\begin{lstlisting}[basicstyle=\ttfamily\small, caption=C++]
+bool cmp_mat(string work_dir, string x_mat_name, string y_mat_name, float eps);
+>>> cmp_mat("../data", "a_n-48", "b_n-48", 0.0001);
+\end{lstlisting}
+
+Parametry wejœciowe:
+\begin{itemize}
+	\item \texttt{x\_mat\_name} -- nazwa pliku z macierz¹ $x$
+	\item \texttt{y\_mat\_name} -- nazwa pliku z macierz¹ $y$
+	\item \texttt{eps} -- minimalna wartoœæ ró¿nicy miêdzy elementami macierzy powoduj¹ca nierównoœæ
+\end{itemize}
+
+Zwracana wartoœæ okreœla czy macierze (symetryczne, zredukowane) s¹ jednakowe (true) lub ró¿ne (false).
+
+\section{Uwagi do implementacji}
+\label{sec:uwagi.do.implementacji}
+\begin{itemize}
+	\item W parametrze \texttt{work\_dir} podawana jest œcie¿ka do istniej¹cego katalogu z którego odczytywane s¹ i zapisywane pliki z danymi.
+	\item Parametry o nazwach koñcz¹cych siê na \texttt{\_name} podaj¹ nazwy istniej¹cych plików z danymi wejœciowymi (rozszerzenie pomijane)
+	\item Parametry o nazwach koñcz¹cych siê na \texttt{\_prx} podaj¹ prefiks nazw plików z danymi wyjœciowymi.
+	\item Implementacja w C++ zapisuje pliki docelowe binarnie i/lub w CSV w zale¿noœci od wartoœci parametrów \texttt{save\_bin}, \texttt{save\_csv}.
+	\item Implementacja C++ odczytuje wejœciowy plik CSV i konwertuje go do pliku binarnego o takiej samej nazwie i rozszerzeniu \texttt{.bin}. Przy kolejnym wywo³aniu z tym samym parametrem wejœciowym odczytuje plik binarny zamiast CSV.
+	\item Implementacja w Matlabie u¿ywa tylko plików CSV dla parametrów wejœciowych i wyjœciowych.
+	\item Przyj¹æ za³o¿enia lub wprowadziæ prze³¹czniki dla sposobu zapisu binarnych macierzy:
+	\begin{itemize}
+		\item dla macierzy symetrycznych (\texttt{TrMatrixd namespace}) mo¿na zapisywaæ tylko górn¹ po³owê wraz z przek¹tn¹
+		\item dla macierzy niesymetrycznych (na razie brak obs³ugi) nale¿y przeprowadzaæ zapis pe³nej macierzy
+		\item mo¿na rozwa¿yæ zapis tylko niezerowych elementów macierzy $A$ jako trójek: indeks wiersza $i$, indeks kolumny $j$, wartoœæ $A_{ij}$
+		\item powy¿sze punkty s¹ nieistotne jeœli dzia³ania bêd¹ przeprowadzane tylko na macierzach symetrycznych
+	\end{itemize}
+	\item Parametr \texttt{dbg} dla funkcji C++ pozwala na w³¹czenie trybu debugowania, który powoduje wyœwietlanie szczegó³owych wyników poœrednich.
+\end{itemize}
+
+%------------------------------
+%
+%\section{Dane wejœciowe}
+%
+%\subsection{Macierze wejœciowe i wektory startowe wygenerowane w Matlabie}
+%\lstinputlisting[basicstyle=\ttfamily\small, label=lst:m.init.data, language=Matlab, caption=init\_data.m]{src/init_data.m}
+%
+%\begin{lstlisting}[basicstyle=\ttfamily\small, label=lst:m.use.init.data, language=Matlab, caption=U¿ycie init\_data.m]
+%init_data("../data",10);
+%init_data("../data",20);
+%init_data("../data",50);
+%init_data("../data",60);
+%init_data("../data",118);
+%\end{lstlisting}
+%
+%\clearpage
+%
+%Utworzono piêæ testowych zestawów danych wejœciowych zapisanych w plikach CSV:
+%
+%\begin{table}[h!]\centering
+%\setlength{\extrarowheight}{0.15cm}
+%\begin{tabular}{|c|c|c|c|c|}\hline
+%	Nr & g &  n &  A &  startvec \\ \cline{1-5}
+%	1  & 10 & 48 & \texttt{A\_n-48\_g-10.csv} & \texttt{startvec\_n-48.csv} \\ \cline{1-5}
+%	2  & 20 & 243 & \texttt{A\_n-243\_g-20.csv} & \texttt{startvec\_n-243.csv} \\ \cline{1-5}
+%	3  & 50 & 1728 & \texttt{A\_n-1728\_g-50.csv} & \texttt{startvec\_n-1728.csv} \\ \cline{1-5}
+%	4  & 60 & 2523 & \texttt{A\_n-2523\_g-60.csv} & \texttt{startvec\_n-2523.csv} \\ \cline{1-5}
+%	5  & 118 & 10092 & \texttt{A\_n-10092\_g-118.csv} & \texttt{startvec\_n-10092.csv} \\ \cline{1-5}
+%\end{tabular}
+%\end{table}
+%
+%\subsection{Pocz¹tkowa iteracja algorytmu Lanczos}
+%\lstinputlisting[basicstyle=\ttfamily\small, label=lst:m.lancno.init, language=Matlab, caption=lancno\_init.m]{src/lancno_init.m}
+%
+%\begin{lstlisting}[basicstyle=\ttfamily\small, label=lst:m.use.lancno.init, language=Matlab, caption=U¿ycie lancno\_init.m]
+%lancno_init("../data","A_n-48_g-10.csv","startvec_n-48.csv",200);
+%\end{lstlisting}
+%
+\end{document}

@@ -1,0 +1,6 @@
+linux/lanczos
+*.o
+test/test_matmulvec
+docs/main.aux
+docs/main.log
+docs/main.out
