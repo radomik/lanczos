@@ -451,9 +451,29 @@ For example:\n\
 	
 	const std::string work_dir = argv[2];
 	
+	Vecd ritz;
+	if (ritz.readCsvOrBin(work_dir, argv[4])) {
+		fprintf(stderr, "%s: Error reading ritz vector\n", __FUNCTION__);
+		return 1;
+	}
+	
+	Vecd b;
+	if (b.readCsvOrBin(work_dir, argv[5])) {
+		fprintf(stderr, "%s: Error reading b vector\n", __FUNCTION__);
+		return 1;
+	}
+	
+		double eps;
+	if (sscanf(argv[5], "%lf", &eps) != 1) {
+		fprintf(stderr, "%s: Error reading eps argument\n", __FUNCTION__);
+		return 1;
+	}
+	
 	double* S;
-	size_t Sm
-	if (! (S=Matrixd::readCsvOrBin(work_dir, argv[3], &Sm))) {
+	size_t Sm;
+	
+	
+		if (! (S=Matrixd::readCsvOrBin(work_dir, argv[3], &Sm))) {
 		fprintf(stderr, "%s: Error reading S matrix\n", __FUNCTION__);
 		return 1;
 	}
