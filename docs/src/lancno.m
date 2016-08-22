@@ -86,7 +86,7 @@ X = zeros(n,size(S2,2));
 for k = 1:m-1
     X = X + v*S2(k,:);
     if k == 1
-    	r = A*v;
+        r = A*v;
     else
         r = A*v - b2*v2;
     end
