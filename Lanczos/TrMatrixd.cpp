@@ -317,6 +317,9 @@ bool TrMatrixd::equals(const double* X, size_t Xn, const double* Y, size_t Yn, f
 	if (Xn != Yn) {
 		return false;
 	}
+	if (X == Y) {
+		return true;
+	}
 	
 	size_t nelem = TrMatrixd::numElemFromN(Xn);
 	
