@@ -910,6 +910,75 @@ public:
 	flt m_tol;
 };
 
+class Householder {
+public:
+	Householder(size_t m, size_t cis) : m_S2(m*cis), m_e(cis), m_c(cis), m_m(m) { }
+	
+	void run(
+		const std::vector< std::pair<u32, u32> >& ci,
+		const Matrixd&  S,
+		const Vecd&     ritz,
+		const Vecd&     lres,
+		const Vecd&     cul,
+		Vecb&           idx
+	) {
+		Vecd x;
+		Vecd u;
+		size_t m = m_m;
+		for (size_t i = 0; i < ci.size(); i++) {
+			const std::pair<u32,u32> cii = ci[i];
+			u32 max_cul_idx = 0;                // j
+			flt max_cul_value = cul[cii.first]; // y
+			for (u32 j = cii.first+1, ix = 1; j <= cii.second; j++, ix++) {
+				if (cul[j] > max_cul_value) {
+					max_cul_value = cul[j];
+					max_cul_idx = ix;
+				}
+			}
+			size_t ji = cii.first + max_cul_idx;
+			
+			// x and u vectors are of size no more than mm
+			// x = {S[0][cii.first], S[0][cii.first+1], ..., S[0][cii.second]}
+			x.resize(cii.second - cii.first + 1);
+			memcpy(x.data(), S.data()+cii.first, x.size());
+			u = x;
+			flt sd = x[max_cul_idx];
+			if (sd > 0.0) {
+				u[max_cul_idx] += x.norm();
+			} else {
+				if (sd < 0.0) {
+					u[max_cul_idx] -= x.norm();
+				}
+			}
+			
+			// s = S(:,ji)-2/(u'*u)*(S(:,cii)*u)*u(j);
+			// S2(:,i) = s;
+			flt un = u.getNormPow();
+			flt uj = u[max_cul_idx];
+			for (u32 p = 0; p < m; p++) { //TODO: paralellize this loop with ISPC/OpenMP
+				flt st = 0.0;
+				u64 pm = p*m;
+				for (u32 q = cii.first, r = 0; q <= cii.second; q++, r++) {
+					st += S[pm + q] * u[r];
+				}
+				m_S2[p*ci.size()+i] = S[pm + ji] - 2.0 / un*st*uj;
+			}
+			
+			for (u32 q = cii.first; q <= cii.second; q++) {
+				idx[q] = false; // idx is a 0/1 vector obtained from Rescon step
+			}
+			idx[ji] = true;
+			m_e[i] = ritz[ji];
+			m_c[i] = lres[ji];
+		}
+	}
+	
+	Matrixd m_S2;
+	Vecd    m_e;
+	Vecd    m_c;
+	size_t  m_m;
+};
+
 class LancznoSuite {
 public:
 	/**
@@ -965,7 +1034,7 @@ public:
 			return -1;
 		}
 		
-		// 4. DC step
+		// 5. DC step
 		// input: ritz'{mm}, mm, tol_dc
 		// output: ci (vector<pair<u32,u32>> of size <= mm)
 		Dc dc;
@@ -974,6 +1043,12 @@ public:
 			fprintf(stderr, "%s: Rescon step failed\n", __FUNCTION__);
 			return -1;
 		}
+		
+		// 6. Householder step
+		// input: ci, m, S'{X,m.mm}, ritz'{mm}, lres{mm}, cul{mm}, idx{m}
+		// output: idx'{m}, S2{X,m.ci.size()}, m_e{ci.size()}, m_c{cis.size()}
+		Householder h(m, dc.m_ci.size());
+		h.run(dc.m_ci, rescon.m_S, rescon.m_ritz, rescon.m_lres, rescon.m_cul, rescon.m_idx);
 	}
 	
 	size_t m_n;
