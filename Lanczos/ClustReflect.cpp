@@ -6,9 +6,9 @@ typedef double flt;
 ///TODO: Fully rewrite this in C++, it is only draft for now
 
 // distinguish the clusters of eigenvalues
-vector<pair<u32,u32>> ci;
+vector< pair<u32,u32> > ci;
 for (u32 k = 1, i = 0; k < mm; k++) {
-	d = fabs(ritz[k] - ritz[i]);
+	flt d = fabs(ritz[k] - ritz[i]);
 	if (d > tol) {
 		ci.push_back(pair(i, k-1));
 		i = k;

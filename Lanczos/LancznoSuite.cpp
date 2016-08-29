@@ -882,6 +882,34 @@ public:
 	flt     m_eps;  ///< parameter, double epsilon value
 };
 
+class Dc {
+public:
+	Dc() {
+		m_tol = 1e-8;
+	}
+
+	int run(const Vecd& ritz, size_t mm, bool dbg) {
+		if (mm > UINT_MAX) {
+			fprintf(stderr, "%s: mm=%zu shall not be greater than UINT_MAX=%u\n", __FUNCTION__, mm, UINT_MAX);
+		}
+		m_ci.clear();
+		u32 i = 0;
+		for (u32 k = 1; k < mm; k++) {
+			flt d = fabs(ritz[k] - ritz[i]);
+			if (d > m_tol) {
+				m_ci.push_back(std::make_pair(i, k-1));
+				i = k;
+				k++;
+			}
+		}
+		m_ci.push_back(std::make_pair(i, mm));
+		return 0;
+	}
+	
+	std::vector< std::pair<u32, u32> > m_ci;
+	flt m_tol;
+};
+
 class LancznoSuite {
 public:
 	/**
@@ -891,6 +919,7 @@ public:
 	LancznoSuite(u32 n, u32 m) : m_n(n), m_m(m) { 
 		m_eps_mrrr   = 1e-13;
 		m_eps_rescon = 1e-13;
+		m_tol_dc     = 1e-8;
 	}
 	
 	/**
@@ -935,10 +964,21 @@ public:
 			fprintf(stderr, "%s: Rescon step failed\n", __FUNCTION__);
 			return -1;
 		}
+		
+		// 4. DC step
+		// input: ritz'{mm}, mm, tol_dc
+		// output: ci (vector<pair<u32,u32>> of size <= mm)
+		Dc dc;
+		dc.m_tol = m_tol_dc;
+		if (dc.run(rescon.m_ritz, rescon.m_mm, dbg) != 0) {
+			fprintf(stderr, "%s: Rescon step failed\n", __FUNCTION__);
+			return -1;
+		}
 	}
 	
 	size_t m_n;
 	size_t m_m;
 	flt    m_eps_mrrr;
 	flt    m_eps_rescon;
+	flt    m_tol_dc;
 };
