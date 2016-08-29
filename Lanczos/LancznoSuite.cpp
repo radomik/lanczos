@@ -4,96 +4,112 @@
 #include <vector>
 #include <fstream>
 #include <algorithm>
+#include <clapack/clapack.h>
 
 typedef int32_t  s32;
 typedef uint32_t u32;
 typedef uint64_t u64;
+
+// must use double because of MRRR step
 typedef double flt;
 
-using namespace std;
-
-class Vecd : public vector<flt> {
+class Vecd : public std::vector<flt> {
 public:
-	Vecd() : vector<flt>() { }
-	Vecd(size_t size) : vector<flt>(size) { }
-	Vecd(const Vecd& src) : vector<flt>(src) { }
+	Vecd() : std::vector<flt>() { }
+	Vecd(size_t size) : std::vector<flt>(size) { }
+	Vecd(const Vecd& src) : std::vector<flt>(src) { }
+	
+	flt* data() { return &front(); }
+	const flt* data() const { return &front(); }
 
-	void random() {
-		random(size(), &front());
+	Vecd& random() {
+		random(size(), data());
+		return *this;
 	}
 	
 	flt norm() {
-		return norm(size(), &front());
+		return norm(size(), data());
 	}
 	
-	void zero() {
-		zero(size(), &front());
+	Vecd& zero() {
+		zero(size(), data());
+		return *this;
 	}
 	
 	flt getNorm() const {
-		return getNorm(size(), &front());
+		return getNorm(size(), data());
 	}
 	
 	flt getNormPow() const {
-		return getNormPow(size(), &front());
+		return getNormPow(size(), data());
 	}
 	
-	void print(FILE* file, const char* name) {
-		print(size(), &front(), file, name);
+	void print(FILE* file, const char* name) const {
+		print(size(), data(), file, name);
 	}
 	
-	void mulByScalar(flt s) {
-		mulByScalar(size(), &front(), &front(), s);
+	Vecd& mulByScalar(flt s) {
+		mulByScalar(size(), data(), data(), s);
+		return *this;
 	}
 	
-	void mulByScalar(const Vecd& v, flt s) {
+	Vecd& mulByScalar(const Vecd& v, flt s) {
 		assert(size() == v.size());
-		mulByScalar(size(), &front(), &v.front(), s);
+		mulByScalar(size(), data(), v.data(), s);
+		return *this;
 	}
 	
-	void divByScalar(flt s) {
-		divByScalar(size(), &front(), &front(), s);
+	Vecd& divByScalar(flt s) {
+		divByScalar(size(), data(), data(), s);
+		return *this;
 	}
 	
-	void divByScalar(const Vecd& v, flt s) {
+	Vecd& divByScalar(const Vecd& v, flt s) {
 		assert(size() == v.size());
-		divByScalar(size(), &front(), &v.front(), s);
+		divByScalar(size(), data(), v.data(), s);
+		return *this;
 	}
 	
-	void mulInvByScalar(flt s) {
-		mulInvByScalar(size(), &front(), &front(), s);
+	Vecd& mulInvByScalar(flt s) {
+		mulInvByScalar(size(), data(), data(), s);
+		return *this;
 	}
 	
-	void mulInvByScalar(const Vecd& v, flt s) {
+	Vecd& mulInvByScalar(const Vecd& v, flt s) {
 		assert(size() == v.size());
-		mulInvByScalar(size(), &front(), &v.front(), s);
+		mulInvByScalar(size(), data(), v.data(), s);
+		return *this;
 	}
 	
-	void add(const Vecd& b) {
+	Vecd& add(const Vecd& b) {
 		assert(size() == b.size());
-		add(size(), &front(), &front(), &b.front());
+		add(size(), data(), data(), b.data());
+		return *this;
 	}
 	
-	void add(const Vecd& a, const Vecd& b) {
+	Vecd& add(const Vecd& a, const Vecd& b) {
 		assert(a.size() == b.size());
 		assert(size() == b.size());
-		add(size(), &front(), &a.front(), &b.front());
+		add(size(), data(), a.data(), b.data());
+		return *this;
 	}
 	
-	void sub(const Vecd& b) {
+	Vecd& sub(const Vecd& b) {
 		assert(size() == b.size());
-		sub(size(), &front(), &front(), &b.front());
+		sub(size(), data(), data(), b.data());
+		return *this;
 	}
 	
-	void sub(const Vecd& a, const Vecd& b) {
+	Vecd& sub(const Vecd& a, const Vecd& b) {
 		assert(a.size() == b.size());
 		assert(size() == b.size());
-		sub(size(), &front(), &a.front(), &b.front());
+		sub(size(), data(), a.data(), b.data());
+		return *this;
 	}
 	
 	flt dotProduct(const Vecd& b) const {
 		assert(size() == b.size());
-		return dotProduct(size(), &front(), &b.front());
+		return dotProduct(size(), data(), b.data());
 	}
 	
 	static void zero(size_t size, flt* data) {
@@ -179,6 +195,46 @@ public:
 	}
 };
 
+class Veci : public std::vector<s32> {
+public:
+	Veci() : std::vector<s32>() { }
+	Veci(size_t size) : std::vector<s32>(size) { }
+	Veci(const Veci& src) : std::vector<s32>(src) { }
+	
+	s32* data() { return &front(); }
+	const s32* data() const { return &front(); }
+	
+	Veci& zero() {
+		zero(size(), data());
+		return *this;
+	}
+	
+	void print(FILE* file, const char* name) const {
+		print(size(), data(), file, name);
+	}
+	
+	static void zero(size_t size, s32* data) {
+		for (size_t i = 0; i < size; i++) {
+			data[i] = 0;
+		}
+	}
+	
+	static void print(size_t size, const s32* data, FILE* file, const char* name) {
+		fprintf(file, "%s = [\n", name);
+		for (size_t i = 0; i < size; i++) {
+			fprintf(file, "%s%d ", i ? " ;\n" : "", data[i]);
+		}
+		fprintf(file, " ]\n\n");
+	}
+};
+
+class Matrixd : public Vecd {
+public:
+	Matrixd() : Vecd() { }
+	Matrixd(size_t size) : Vecd(size) { }
+	Matrixd(const Matrixd& src) : Vecd(src) { }
+};
+
 class TrMatrixd : public Vecd {
 public:
 	TrMatrixd() : Vecd() { }
@@ -202,7 +258,7 @@ public:
 		std::string line;
 		size_t  i = 0;
 		size_t  di = 0;
-		flt*    data = NULL;
+		flt*    dt = NULL;
 		bool    error = false;
 		m_dim = 0;
 
@@ -216,7 +272,7 @@ public:
 				size_t datasize = sizeFromDim(m_dim);
 				resize(datasize);
 				fprintf(stderr, "%s: dim=%zu, size=%zu\n", __FUNCTION__, m_dim, size());
-				data = &front();
+				dt = data();
 			}
 
 			size_t j = 0;
@@ -232,7 +288,7 @@ public:
 					std::string token = line.substr(0, pos);
 					string_utils::trim(token);
 
-					if (sscanf(token.c_str(), "%lf", &data[di++]) != 1) {
+					if (sscanf(token.c_str(), "%lf", &dt[di++]) != 1) {
 						fprintf(stderr, "%s: [1] Cannot read value at row index: %zu and column index: %zu\n", __FUNCTION__, i, j);
 						error = true;
 						break;
@@ -255,13 +311,12 @@ public:
 					break;
 				}
 
-				if (sscanf(line.c_str(), "%lf", &data[di++]) != 1) {
+				if (sscanf(line.c_str(), "%lf", &dt[di++]) != 1) {
 					fprintf(stderr, "%s: [2] Cannot read value at row index: %zu and column index: %zu\n", __FUNCTION__, i, j);
 					error = true;
 					break;
 				}
 			}
-
 			i++;
 		}
 		
@@ -294,14 +349,13 @@ public:
 		
 		size_t nelem = sizeFromDim(nu);
 		
-		fprintf(stderr, "%s: Reading matrix of dim=%u, nelem=%zu, sizeof(A[0])=%zu\n", __FUNCTION__, nu, nelem, sizeof((&front())[0]));
+		fprintf(stderr, "%s: Reading matrix of dim=%u, nelem=%zu, sizeof(A[0])=%zu\n", __FUNCTION__, nu, nelem, sizeof(data()[0]));
 		
 		resize(nelem);
 		fprintf(stderr, "%s: Size of data is %zu\n", __FUNCTION__, size());
 		
-		flt* data = &front();
-		
-		if ((ret=fread(data, sizeof(data[0]), nelem, bin)) != nelem) {
+		flt* dt = data();
+		if ((ret=fread(dt, sizeof(dt[0]), nelem, bin)) != nelem) {
 			fprintf(stderr, "%s: Error reading matrix content (nelem=%zu, ret=%zu) [%s]\n", __FUNCTION__, nelem, ret, strerror(errno));
 			fclose(bin);
 			return -1;
@@ -324,19 +378,19 @@ public:
 	}
 	
 	void print(FILE* file, const char* name) const {
-		print(&front(), dim(), file, name);
+		print(data(), dim(), file, name);
 	}
 	
 	int saveCsv(const char* filename) const {
-		return saveCsv(&front(), dim(), filename);
+		return saveCsv(data(), dim(), filename);
 	}
 	
 	int saveBin(const char* filename) const {
-		return saveBin(&front(), dim(), filename);
+		return saveBin(data(), dim(), filename);
 	}
 	
 	bool equals(const TrMatrixd& other, flt eps, size_t* first_diff_index, flt* first_diff) const {
-		return equals(&front(), dim(), &other.front(), other.dim(), eps, first_diff_index, first_diff);
+		return equals(data(), dim(), other.data(), other.dim(), eps, first_diff_index, first_diff);
 	}
 	
 	static size_t sizeFromDim(size_t datadim) {
@@ -346,7 +400,7 @@ public:
 	static void mulByVector(Vecd& res, const TrMatrixd& A, const Vecd& b) {
 		assert(A.size() == b.size());
 		assert(res.size() == b.size());
-		mulByVector(&res.front(), &A.front(), &b.front(), b.size());
+		mulByVector(res.data(), A.data(), b.data(), b.size());
 	}
 	
 	static void mulByVector(flt* res, const flt* A, const flt* b, size_t n) {
@@ -521,32 +575,32 @@ public:
 
 class LancznoInit {
 public:
-	LancznoInit(u32 m) : m_avec(m), m_bvec(m) { }
+	LancznoInit(u32 m) : m_a(m), m_b(m) { }
 	
 	/**
 	 * @param A{n.n}      linearized reduced symmetric square matrix used to compute eigen values/vectors for
 	 * @param startvec{n} optional starting vector 
 	 * @param dbg         whether print debug information
 	 * 
-	 * Produces results in m_avec, m_bvec, m_anorm
+	 * Produces results in m_a, m_b, m_anorm
 	 * 
 	 */
 	void run(const TrMatrixd& A, const Vecd& startvec, bool dbg) {
 		u32 n = startvec.size();
-		u32 m = m_avec.size();
+		u32 m = m_a.size();
 		Vecd v(startvec);
 		Vecd v2(n);
 		Vecd vt(n);
 		Vecd r(n);
 		Vecd rt(n);
 		
-		m_avec.zero();
-		m_bvec.zero();
+		m_a.zero();
+		m_b.zero();
 
 		if (dbg) {
 			v.print(stderr, "v");
-			m_avec.print(stderr, "a");
-			m_bvec.print(stderr, "b");
+			m_a.print(stderr, "a");
+			m_b.print(stderr, "b");
 		}
 
 		// initial Lanczos iteration, m steps
@@ -558,33 +612,33 @@ public:
 				TrMatrixd::mulByVector(r, A, v);  // r{n} = a{n}{n} * v{n}
 			} else {
 				TrMatrixd::mulByVector(rt, A, v); // rt{n} = a{n}{n} * v{n}
-				vt.mulByScalar(v2, m_bvec[k-1]); // vt{n} = b[k-1]{1} * v2{n}
-				r.sub(rt, vt);              // r{n}  = rt{n} - vt{n}
+				vt.mulByScalar(v2, m_b[k-1]);     // vt{n} = b[k-1]{1} * v2{n}
+				r.sub(rt, vt);                    // r{n}  = rt{n} - vt{n}
 			}
 
 			if (dbg) {
 				r.print(stderr, "r");
 			}
-			m_avec[k] = v.dotProduct(r);  // a[k]{1} = SUM v[i]*r[i]
+			m_a[k] = v.dotProduct(r);  // a[k]{1} = SUM v[i]*r[i]
 			if (dbg) {
-				m_avec.print(stderr, "a");
+				m_a.print(stderr, "a");
 			}
 
-			vt.mulByScalar(v, m_avec[k]); // vt{n}   = a[k]{1} * v{n}
-			r.sub(vt);               // r{n}    = r{n} - vt{n}
+			vt.mulByScalar(v, m_a[k]); // vt{n}   = a[k]{1} * v{n}
+			r.sub(vt);                 // r{n}    = r{n} - vt{n}
 			if (dbg) {
 				r.print(stderr, "r");
 			}
-			m_bvec[k] = r.getNorm();             // b[k]{1} = |r{n}|
+			m_b[k] = r.getNorm();      // b[k]{1} = |r{n}|
 			if (dbg) {
-				m_bvec.print(stderr, "b");
+				m_b.print(stderr, "b");
 			}
 
 			// estimate |A|_2 by |T|_1
 			if (k == 0) {
-				m_anorm = fabs(m_avec[0] + m_bvec[0]);
+				m_anorm = fabs(m_a[0] + m_b[0]);
 			} else {
-				m_anorm = std::max(m_anorm, m_bvec[k-1]+fabs(m_avec[k])+m_bvec[k]);
+				m_anorm = max(m_anorm, m_b[k-1]+fabs(m_a[k])+m_b[k]);
 			}
 
 			if (dbg) {
@@ -600,21 +654,102 @@ public:
 			if (dbg) {
 				v2.print(stderr, "v2");
 			}
-			v.divByScalar(r, m_bvec[k-1]); // EACH_i v[i] = r[i]/b[k-1]
+			v.divByScalar(r, m_b[k-1]); // EACH_i v[i] = r[i]/b[k-1]
 			if (dbg) {
 				v.print(stderr, "v");
 			}
 		}
 	}
 	
-	Vecd m_avec;
-	Vecd m_bvec;
+	Vecd m_a;
+	Vecd m_b;
 	flt  m_anorm;
 };
 
 class Mrrr {
 public:
-	Mrrr() { }
+	Mrrr(size_t m) : m_S(m), m_ritz(m) {
+		 m_eps = 1e-13;
+	}
+	
+	int run(const Vecd& a, const Vecd& b, bool dbg) {
+		size_t m = m_ritz.size();
+		assert(a.size() == m);
+		assert(b.size() == m);
+		assert(m_S.size() == m*m);
+		
+		// matrix size
+		int im = m; // m
+		assert((size_t)im == m);
+
+		char jobz[] = "V";
+		char range[] = "A";
+
+		// main diagonal
+		Vecd d(a);
+
+		// sub-/superdiagonal
+		Vecd e(b);
+
+		double vl = 0.0, vu = 0.0;  // unused
+		int il = 0, iu = 0;         // unused
+		double abstol = m_eps;      // unused?
+		int numEval;                // number of eigenvalues found
+
+		// misc arguments
+		double v_work1 = 0.0;
+		int v_iwork1 = 0;
+		int ldz = m;
+		int lwork = -1;
+		int liwork = -1;
+		int info;
+
+		Veci isuppz(m<<1);
+		double* work1 = &v_work1;
+		int* iwork1 = &v_iwork1;
+
+		isuppz.zero();
+
+		// query for workspace size
+		dstegr_( jobz, range, &im, d.data(), e.data(), &vl, &vu, &il, &iu, &abstol,
+			&numEval, m_ritz.data(), m_S.data(), &ldz, isuppz.data(), work1, &lwork, iwork1, &liwork,
+			&info );
+
+		if (info < 0) {
+			fprintf(stderr, "%s: [ERROR 1] Input to dstegr had an illegal value [info: %d]\n", __FUNCTION__, info);
+			return info;
+		}
+
+		if (dbg) {
+			fprintf(stderr, "%s: [1] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
+		}
+
+		lwork  = (int)work1[0];
+		liwork = iwork1[0];
+
+		if (dbg) {
+			fprintf(stderr, "%s: [2] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
+		}
+		
+		Vecd work(lwork);
+		Veci iwork(liwork);
+		work.zero();
+		iwork.zero();
+
+		// call LAPACK routine
+		dstegr_( jobz, range, &im, d.data(), e.data(), &vl, &vu, &il, &iu, &abstol,
+			&numEval, m_ritz.data(), m_S.data(), &ldz, isuppz.data(), work.data(), &lwork, iwork.data(), &liwork,
+			&info );
+
+		if (info != 0) {
+			fprintf(stderr, "%s: [ERROR 2] Input to dstegr had an illegal value [info: %d]\n", __FUNCTION__, info);
+		}
+		return info;
+	}
+	
+	Matrixd m_S;
+	Vecd    m_ritz;
+	flt     m_eps;
 };
 
 class LancznoSuite {
@@ -623,28 +758,47 @@ public:
 	 * @param n input matrix size
 	 * @param m Lanczos iteration count
 	*/
-	LancznoSuite(u32 n, u32 m) : m_n(n), m_m(m), m_startvec(n), m_init(m) { }
+	LancznoSuite(u32 n, u32 m) : m_n(n), m_m(m) { 
+		m_eps_mrrr   = 1e-13;
+		m_eps_rescon = 1e-13;
+	}
 	
 	/**
 	 * @param A{n.n}      linearized reduced symmetric square matrix used to compute eigen values/vectors for
 	 * @param startvec{n} optional starting vector 
 	 * @param dbg         whether print debug information
 	 */
-	void run(const TrMatrixd& A, const Vecd* startvec, bool dbg) {
+	int run(const TrMatrixd& A, const Vecd* startvec, bool dbg) {
+		size_t m = m_m;
+		size_t n = m_n;
+		Vecd stv(n);
+		
+		// 1. Initialize starting vector stv{n}
 		if (startvec) {
-			m_startvec = *startvec;
+			stv = *startvec;
 		} else {
-			m_startvec.random();
-			m_startvec.norm();
+			stv.random().norm();
 		}
 		
-		m_init.run(A, m_startvec, dbg);
+		// 2. Initial Lanczos iteration
+		// input:  A{T,n.n}, stv{n}, m, n
+		// output: a{m}, b{m}, anorm
+		LancznoInit init(m);
+		init.run(A, stv, dbg);
 		
-		
+		// 3. MRRR step
+		// input: a{m}, b{m}, m
+		// output: S{X,m.m}, ritz{m}
+		Mrrr mrrr(m);
+		mrrr.m_eps = m_eps_mrrr;
+		if (mrrr.run(init.m_a, init.m_b, dbg) != 0) {
+			fprintf(stderr, "%s: MRRR step failed\n", __FUNCTION__);
+			return -1;
+		}
 	}
 	
-	u32 m_n;
-	u32 m_m;
-	Vecd m_startvec;
-	LancznoInit m_init;
+	size_t m_n;
+	size_t m_m;
+	flt    m_eps_mrrr;
+	flt    m_eps_rescon;
 };
