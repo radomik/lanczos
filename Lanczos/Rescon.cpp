@@ -68,9 +68,9 @@ int Rescon::rescon(
 	m_k    = count_one;
 	for (size_t i = 0, k = 0; i < m; i++) {
 		if ((*m_idx)[i]) {
-			m_lres[k] = (*temp_lres)[i];
-			m_cul[k]  = (*temp_cul)[i];
-			m_ritz[k] = ritz[i];
+			(*m_lres)[k] = (*temp_lres)[i];
+			(*m_cul)[k]  = (*temp_cul)[i];
+			(*m_ritz)[k] = ritz[i];
 			k++;
 		}
 	}

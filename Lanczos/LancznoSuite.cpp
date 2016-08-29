@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <clapack/clapack.h>
 
+typedef uint8_t  u8;
 typedef int32_t  s32;
 typedef uint32_t u32;
 typedef uint64_t u64;
@@ -214,15 +215,44 @@ public:
 	}
 	
 	static void zero(size_t size, s32* data) {
-		for (size_t i = 0; i < size; i++) {
-			data[i] = 0;
-		}
+		memset(data, 0, size*sizeof(data[0]));
 	}
 	
 	static void print(size_t size, const s32* data, FILE* file, const char* name) {
 		fprintf(file, "%s = [\n", name);
 		for (size_t i = 0; i < size; i++) {
 			fprintf(file, "%s%d ", i ? " ;\n" : "", data[i]);
+		}
+		fprintf(file, " ]\n\n");
+	}
+};
+
+class Vecb : public std::vector<u8> {
+public:
+	Vecb() : std::vector<u8>() { }
+	Vecb(size_t size) : std::vector<u8>(size) { }
+	Vecb(const Vecb& src) : std::vector<u8>(src) { }
+	
+	u8* data() { return &front(); }
+	const u8* data() const { return &front(); }
+	
+	Vecb& zero() {
+		zero(size(), data());
+		return *this;
+	}
+	
+	void print(FILE* file, const char* name) const {
+		print(size(), data(), file, name);
+	}
+	
+	static void zero(size_t size, u8* data) {
+		memset(data, 0, size*sizeof(data[0]));
+	}
+	
+	static void print(size_t size, const u8* data, FILE* file, const char* name) {
+		fprintf(file, "%s = [\n", name);
+		for (size_t i = 0; i < size; i++) {
+			fprintf(file, "%s%u ", i ? " ;\n" : "", data[i]);
 		}
 		fprintf(file, " ]\n\n");
 	}
@@ -249,7 +279,7 @@ public:
 	int readCsv(const char* filename, const char* separator) {
 		std::ifstream file(filename);
 
-		if (! file) {
+		if (!file) {
 			fprintf(stderr, "%s: Failed to open '%s' [%s]\n", __FUNCTION__, filename, strerror(errno));
 			return -1;
 		}
@@ -752,6 +782,106 @@ public:
 	flt     m_eps;
 };
 
+class Rescon {
+public:
+	Rescon(size_t m) : m_idx(m) {
+		 m_eps = 1e-13;
+	}
+	
+	/**
+	 * Residual estimation and removing non-converged and spurious Ritz values.
+	 * 
+	 * @param S     Input non-symmetric matrix of size m*m obtained in MRRR step
+	 * @param ritz  Input ritz vector of size m obtained in MRRR step
+	 * @param b     Input b vector of size m obtained in LANCNO_INIT step
+	 * @param anorm Input value of anorm obtained in LANCNO_INIT step
+	 * @param dbg   Print debug info
+	 * 
+	 * @return 0 on success, 1 when all RITZ values has been removed
+	 * 
+	 */
+	int run(
+		const Matrixd  S,
+		const Vecd&    ritz,
+		const Vecd&    b,
+		const double   anorm,
+		bool           dbg
+	)
+	{
+		size_t m              = b.size();
+		size_t mm             = 0;
+		const flt* S_last_row = S.data() + m*(m-1);
+		const flt  b_last     = b[m-1];
+		const flt  tol        = m_eps * anorm;
+		Vecd   temp_lres(m);
+		Vecd   temp_cul(m);
+		
+		if (dbg) {
+			fprintf(stderr, "%s: eps=%g, anorm=%g, tol=%g\n", __FUNCTION__, m_eps, anorm, tol);
+		}
+		
+		for (size_t i = 0; i < m; i++) {
+			const flt lres_i = fabs(b_last * S_last_row[i]); // lres = abs(b(m)*S(m,:))'; % residual estimation
+			const flt cul_i  = fabs(S[i]);                    // cul = abs(S(1,:))';
+			
+			// remove non-converged and spurious Ritz values
+			if ((m_idx[i] = (lres_i < tol) && (cul_i > tol))) {
+				mm++;
+			}
+			
+			temp_lres[i] = lres_i;
+			temp_cul[i] = cul_i;
+		}
+		
+		if (dbg) {
+			fprintf(stderr, "%s: m=%zu, mm=%zu\n", __FUNCTION__, m, mm);
+		}
+		
+		if (mm == 0) {
+			fprintf(stderr, "%s: [ERROR] All Ritz values are marked to be removed\n", __FUNCTION__);
+			return -1;
+		}
+		
+		m_lres.resize(mm);
+		m_cul.resize(mm);
+		m_ritz.resize(mm);
+		m_S.resize(m * mm);
+		m_mm = mm;
+		for (size_t i = 0, k = 0; i < m; i++) {
+			if (m_idx[i]) {
+				m_lres[k] = temp_lres[i];
+				m_cul[k]  = temp_cul[i];
+				m_ritz[k] = ritz[i];
+				k++;
+			}
+		}
+		
+		// rewrite only columns s[i][k] which has idx[k] = 1
+		flt*       dst_data = m_S.data();
+		const flt* src_data = S.data();
+		for (size_t i = 0; i < m; i++) {
+			const size_t sd = i * mm;
+			const size_t ss = i * m;
+			for (size_t j = 0, k = 0; j < m; j++) {
+				if (m_idx[j]) {
+					dst_data[sd + k] = src_data[ss + j];
+					k++;
+				}
+			}
+		}
+		
+		return 0;
+	}
+	
+	Vecd    m_lres; ///< output vector lres of size mm, mm <= m
+	Vecd    m_cul;  ///< output vector cul of size mm, mm <= m
+	Vecd    m_ritz; ///< output vector ritz of size mm, mm <= m
+	Vecb    m_idx;  ///< output 0/1 vector idx of size m
+	Matrixd m_S;    ///< output s matrix of size m*mm, mm <= m
+	flt     m_mm;   ///< output mm value
+	flt     m_eps;  ///< parameter, double epsilon value
+};
+
 class LancznoSuite {
 public:
 	/**
@@ -787,12 +917,22 @@ public:
 		init.run(A, stv, dbg);
 		
 		// 3. MRRR step
-		// input: a{m}, b{m}, m
+		// input: a{m}, b{m}, m, eps_mrrr
 		// output: S{X,m.m}, ritz{m}
 		Mrrr mrrr(m);
 		mrrr.m_eps = m_eps_mrrr;
 		if (mrrr.run(init.m_a, init.m_b, dbg) != 0) {
 			fprintf(stderr, "%s: MRRR step failed\n", __FUNCTION__);
+			return -1;
+		}
+		
+		// 4. Rescon step
+		// input: S{X,m.m}, ritz{m}, b{m}, anorm, m, eps_rescon
+		// output: S'{X,m.mm}, idx{m}, ritz'{mm}, lres{mm}, cul{mm}, mm
+		Rescon rescon(m);
+		rescon.m_eps = m_eps_rescon;
+		if (rescon.run(mrrr.m_S, mrrr.m_ritz, init.m_b, init.m_anorm, dbg) != 0) {
+			fprintf(stderr, "%s: Rescon step failed\n", __FUNCTION__);
 			return -1;
 		}
 	}
