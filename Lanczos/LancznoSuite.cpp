@@ -18,6 +18,7 @@ class Vecd : public std::vector<flt> {
 public:
 	Vecd() : std::vector<flt>() { }
 	Vecd(size_t size) : std::vector<flt>(size) { }
+	Vecd(size_t size, flt val) : std::vector<flt>(size, val) { }
 	Vecd(const Vecd& src) : std::vector<flt>(src) { }
 	
 	flt* data() { return &front(); }
@@ -43,6 +44,10 @@ public:
 	
 	flt getNormPow() const {
 		return getNormPow(size(), data());
+	}
+	
+	void print(bool dbg, const char* name) const {
+		if (dbg) print(size(), data(), stderr, name);
 	}
 	
 	void print(FILE* file, const char* name) const {
@@ -200,6 +205,7 @@ class Veci : public std::vector<s32> {
 public:
 	Veci() : std::vector<s32>() { }
 	Veci(size_t size) : std::vector<s32>(size) { }
+	Veci(size_t size, s32 val) : std::vector<s32>(size, val) { }
 	Veci(const Veci& src) : std::vector<s32>(src) { }
 	
 	s32* data() { return &front(); }
@@ -231,6 +237,7 @@ class Vecb : public std::vector<u8> {
 public:
 	Vecb() : std::vector<u8>() { }
 	Vecb(size_t size) : std::vector<u8>(size) { }
+	Vecb(size_t size, u8 val) : std::vector<u8>(size, val) { }
 	Vecb(const Vecb& src) : std::vector<u8>(src) { }
 	
 	u8* data() { return &front(); }
@@ -262,6 +269,7 @@ class Matrixd : public Vecd {
 public:
 	Matrixd() : Vecd() { }
 	Matrixd(size_t size) : Vecd(size) { }
+	Matrixd(size_t size, flt val) : Vecd(size, val) { }
 	Matrixd(const Matrixd& src) : Vecd(src) { }
 };
 
@@ -269,6 +277,7 @@ class TrMatrixd : public Vecd {
 public:
 	TrMatrixd() : Vecd() { }
 	TrMatrixd(size_t size) : Vecd(size) { }
+	TrMatrixd(size_t size, flt val) : Vecd(size, val) { }
 	TrMatrixd(const TrMatrixd& src) : Vecd(src) { }
 	
 	//NOTE: size() returns nelem
@@ -284,7 +293,7 @@ public:
 			return -1;
 		}
 
-		std::string delim = separator;
+		const std::string delim = separator;
 		std::string line;
 		size_t  i = 0;
 		size_t  di = 0;
@@ -357,6 +366,7 @@ public:
 			return -1;
 		}
 		if (error) {
+			fprintf(stderr, "%s: CSV parsing of '%s' error occured\n", __FUNCTION__, filename);
 			return -1;
 		}
 		return 0;
@@ -377,7 +387,7 @@ public:
 			return -1;
 		}
 		
-		size_t nelem = sizeFromDim(nu);
+		const size_t nelem = sizeFromDim(nu);
 		
 		fprintf(stderr, "%s: Reading matrix of dim=%u, nelem=%zu, sizeof(A[0])=%zu\n", __FUNCTION__, nu, nelem, sizeof(data()[0]));
 		
@@ -386,7 +396,7 @@ public:
 		
 		flt* dt = data();
 		if ((ret=fread(dt, sizeof(dt[0]), nelem, bin)) != nelem) {
-			fprintf(stderr, "%s: Error reading matrix content (nelem=%zu, ret=%zu) [%s]\n", __FUNCTION__, nelem, ret, strerror(errno));
+			fprintf(stderr, "%s: Error reading matrix content [nelem=%zu, ret=%zu, err=%s]\n", __FUNCTION__, nelem, ret, strerror(errno));
 			fclose(bin);
 			return -1;
 		}
@@ -396,7 +406,7 @@ public:
 	}
 	
 	int readCsvOrBin(const std::string& work_dir, const std::string& filename_without_ext) {
-		CsvBinPaths p(work_dir, filename_without_ext);
+		const CsvBinPaths p(work_dir, filename_without_ext);
 		if (readBin(p.bin()) != 0) {
 			if (readCsv(p.csv(), ",") != 0) {
 				fprintf(stderr, "%s: Error reading matrix [csv=%s, bin=%s]\n", __FUNCTION__, p.csv(), p.bin());
@@ -538,8 +548,10 @@ public:
 			return -1;
 		}
 
-		uint32_t nu = (uint32_t)dim;
-		size_t nelem = sizeFromDim(dim);
+		const uint32_t nu = (uint32_t)dim;
+		const size_t nelem = sizeFromDim(dim);
+		
+		assert(nu == dim);
 
 		fprintf(stderr, "%s: Saving matrix of dim=%u, nelem=%zu, sizeof(A[0])=%zu\n", __FUNCTION__, nu, nelem, sizeof(A[0]));
 
@@ -552,7 +564,7 @@ public:
 		int ret = (fwrite(&nu, sizeof(nu), 1, bin) != 1) || (fwrite(A, sizeof(A[0]), nelem, bin) != nelem);
 		
 		if (ret) {
-			fprintf(stderr, "%s: Error writing file '%s' [%s]\n", __FUNCTION__, filename, strerror(errno));
+			fprintf(stderr, "%s: Error writing file '%s' [ret=%d, err=%s]\n", __FUNCTION__, filename, ret, strerror(errno));
 			ret = -1;
 		}
 		else {
@@ -575,7 +587,7 @@ public:
 			return true;
 		}
 		
-		size_t nelem = sizeFromDim(Xn);
+		const size_t nelem = sizeFromDim(Xn);
 		
 		for (size_t i = 0; i < nelem; i++) {
 			const flt diff = fabsf(X[i]-Y[i]);
@@ -605,89 +617,69 @@ public:
 
 class LancznoInit {
 public:
-	LancznoInit(u32 m) : m_a(m), m_b(m) { }
+	LancznoInit(size_t m) : m_a(m, 0.0), m_b(m, 0.0) { }
 	
 	/**
 	 * @param A{n.n}      linearized reduced symmetric square matrix used to compute eigen values/vectors for
-	 * @param startvec{n} optional starting vector 
+	 * @param stv{n}      starting vector 
 	 * @param dbg         whether print debug information
 	 * 
 	 * Produces results in m_a, m_b, m_anorm
 	 * 
 	 */
-	void run(const TrMatrixd& A, const Vecd& startvec, bool dbg) {
-		u32 n = startvec.size();
-		u32 m = m_a.size();
-		Vecd v(startvec);
-		Vecd v2(n);
-		Vecd vt(n);
-		Vecd r(n);
-		Vecd rt(n);
-		
-		m_a.zero();
-		m_b.zero();
+	void run(const TrMatrixd& A, const Vecd& stv, bool dbg) {
+		const size_t n = stv.size();
+		const size_t m = m_a.size();
+		Vecd v(stv);                             // v{n} = stv{n}
+		Vecd v2(n);                              // v2{n}
+		Vecd r(n);                               // r{n}
 
-		if (dbg) {
-			v.print(stderr, "v");
-			m_a.print(stderr, "a");
-			m_b.print(stderr, "b");
-		}
+		v.print(dbg, "v");
+		m_a.print(dbg, "a");
+		m_b.print(dbg, "b");
 
 		// initial Lanczos iteration, m steps
-		for (uint32_t k = 0; ; ) {
-			if (dbg) {
-				fprintf(stderr, "for: k == %u\n", k);
-			}
+		for (size_t k = 0; ; ) {
+			if (dbg) fprintf(stderr, "for: k == %zu\n", k);
+			
 			if (k == 0) {
-				TrMatrixd::mulByVector(r, A, v);  // r{n} = a{n}{n} * v{n}
+				TrMatrixd::mulByVector(r, A, v); // r{n}  = A{n}{n} * v{n}
 			} else {
-				TrMatrixd::mulByVector(rt, A, v); // rt{n} = a{n}{n} * v{n}
-				vt.mulByScalar(v2, m_b[k-1]);     // vt{n} = b[k-1]{1} * v2{n}
-				r.sub(rt, vt);                    // r{n}  = rt{n} - vt{n}
+				TrMatrixd::mulByVector(r, A, v); // r{n}  = A{n}{n} * v{n}
+				v2.mulByScalar(m_b[k-1]);        // v2{n} = b[k-1]{1} * v2{n}
+				r.sub(v2);                       // r{n}  = r{n} - v2{n}
 			}
 
-			if (dbg) {
-				r.print(stderr, "r");
-			}
-			m_a[k] = v.dotProduct(r);  // a[k]{1} = SUM v[i]*r[i]
-			if (dbg) {
-				m_a.print(stderr, "a");
-			}
+			r.print(dbg, "r");
+			
+			m_a[k] = v.dotProduct(r);            // a[k]{1} = SUM v[i]*r[i]
+			m_a.print(dbg, "a");
 
-			vt.mulByScalar(v, m_a[k]); // vt{n}   = a[k]{1} * v{n}
-			r.sub(vt);                 // r{n}    = r{n} - vt{n}
-			if (dbg) {
-				r.print(stderr, "r");
-			}
-			m_b[k] = r.getNorm();      // b[k]{1} = |r{n}|
-			if (dbg) {
-				m_b.print(stderr, "b");
-			}
+			v2.mulByScalar(v, m_a[k]);           // v2{n}   = a[k]{1} * v{n}
+			r.sub(v2).print(dbg, "r");           // r{n}    = r{n} - v2{n}
+			
+			m_b[k] = r.getNorm();                // b[k]{1} = (SUM r[i]^2)^0.5
+			
+			m_b.print(dbg, "b");
 
 			// estimate |A|_2 by |T|_1
 			if (k == 0) {
-				m_anorm = fabs(m_a[0] + m_b[0]);
+				m_anorm = fabs(m_a[0] + m_b[0]); // anorm = |a[0] + b[0]|
 			} else {
 				m_anorm = max(m_anorm, m_b[k-1]+fabs(m_a[k])+m_b[k]);
-			}
+			}                                    // anorm = max(anorm, b[k-1]+|a[k]|+b[k])
 
-			if (dbg) {
-				fprintf(stderr, "anorm = %f\n\n", m_anorm);
-			}
+			if (dbg) fprintf(stderr, "anorm = %f\n\n", m_anorm);
 
 			if (++k == m) {
 				break;
 			}
 
 			// prepare next step, k = {1 ... m-1}
-			v2 = v;                          // v2{n} = v{n}
-			if (dbg) {
-				v2.print(stderr, "v2");
-			}
-			v.divByScalar(r, m_b[k-1]); // EACH_i v[i] = r[i]/b[k-1]
-			if (dbg) {
-				v.print(stderr, "v");
-			}
+			v2 = v;                              // v2{n} = v{n}
+			v2.print(dbg, "v2");
+			
+			v.divByScalar(r, m_b[k-1]).print(dbg, "v"); // EACH v[i] = r[i]/b[k-1]
 		}
 	}
 	
@@ -703,7 +695,7 @@ public:
 	}
 	
 	int run(const Vecd& a, const Vecd& b, bool dbg) {
-		size_t m = m_ritz.size();
+		const size_t m = m_ritz.size();
 		assert(a.size() == m);
 		assert(b.size() == m);
 		assert(m_S.size() == m*m);
@@ -734,11 +726,9 @@ public:
 		int liwork = -1;
 		int info;
 
-		Veci isuppz(m<<1);
+		Veci isuppz(m<<1, 0);
 		double* work1 = &v_work1;
 		int* iwork1 = &v_iwork1;
-
-		isuppz.zero();
 
 		// query for workspace size
 		dstegr_( jobz, range, &im, d.data(), e.data(), &vl, &vu, &il, &iu, &abstol,
@@ -761,10 +751,11 @@ public:
 			fprintf(stderr, "%s: [2] lwork: %d (%f), liwork: %d (%d)\n", __FUNCTION__, lwork, work1[0], liwork, iwork1[0]);
 		}
 		
-		Vecd work(lwork);
-		Veci iwork(liwork);
-		work.zero();
-		iwork.zero();
+		assert(lwork > 0);
+		assert(liwork > 0);
+		
+		Vecd work(lwork, 0.0);
+		Veci iwork(liwork, 0);
 
 		// call LAPACK routine
 		dstegr_( jobz, range, &im, d.data(), e.data(), &vl, &vu, &il, &iu, &abstol,
@@ -808,7 +799,7 @@ public:
 		bool           dbg
 	)
 	{
-		size_t m              = b.size();
+		const size_t m        = b.size();
 		size_t mm             = 0;
 		const flt* S_last_row = S.data() + m*(m-1);
 		const flt  b_last     = b[m-1];
@@ -891,15 +882,15 @@ public:
 	int run(const Vecd& ritz, size_t mm, bool dbg) {
 		if (mm > UINT_MAX) {
 			fprintf(stderr, "%s: mm=%zu shall not be greater than UINT_MAX=%u\n", __FUNCTION__, mm, UINT_MAX);
+			return -1;
 		}
 		m_ci.clear();
 		u32 i = 0;
 		for (u32 k = 1; k < mm; k++) {
-			flt d = fabs(ritz[k] - ritz[i]);
+			const flt d = fabs(ritz[k] - ritz[i]);
 			if (d > m_tol) {
 				m_ci.push_back(std::make_pair(i, k-1));
-				i = k;
-				k++;
+				i = k++;
 			}
 		}
 		m_ci.push_back(std::make_pair(i, mm));
@@ -924,8 +915,9 @@ public:
 	) {
 		Vecd x;
 		Vecd u;
-		size_t m = m_m;
-		for (size_t i = 0; i < ci.size(); i++) {
+		const size_t m = m_m;
+		const size_t cis = ci.size();
+		for (size_t i = 0; i < cis; i++) {
 			const std::pair<u32,u32> cii = ci[i];
 			u32 max_cul_idx = 0;                // j
 			flt max_cul_value = cul[cii.first]; // y
@@ -935,14 +927,15 @@ public:
 					max_cul_idx = ix;
 				}
 			}
-			size_t ji = cii.first + max_cul_idx;
+			const size_t ji = cii.first + max_cul_idx;
 			
 			// x and u vectors are of size no more than mm
 			// x = {S[0][cii.first], S[0][cii.first+1], ..., S[0][cii.second]}
 			x.resize(cii.second - cii.first + 1);
 			memcpy(x.data(), S.data()+cii.first, x.size());
 			u = x;
-			flt sd = x[max_cul_idx];
+			
+			const flt sd = x[max_cul_idx];
 			if (sd > 0.0) {
 				u[max_cul_idx] += x.norm();
 			} else {
@@ -953,15 +946,16 @@ public:
 			
 			// s = S(:,ji)-2/(u'*u)*(S(:,cii)*u)*u(j);
 			// S2(:,i) = s;
-			flt un = u.getNormPow();
-			flt uj = u[max_cul_idx];
+			const flt un = u.getNormPow();
+			const flt uj = u[max_cul_idx];
+			
 			for (u32 p = 0; p < m; p++) { //TODO: paralellize this loop with ISPC/OpenMP
 				flt st = 0.0;
-				u64 pm = p*m;
+				const u64 pm = p*m;
 				for (u32 q = cii.first, r = 0; q <= cii.second; q++, r++) {
 					st += S[pm + q] * u[r];
 				}
-				m_S2[p*ci.size()+i] = S[pm + ji] - 2.0 / un*st*uj;
+				m_S2[p*cis+i] = S[pm + ji] - 2.0 / un*st*uj;
 			}
 			
 			for (u32 q = cii.first; q <= cii.second; q++) {
@@ -973,10 +967,85 @@ public:
 		}
 	}
 	
-	Matrixd m_S2;
-	Vecd    m_e;
-	Vecd    m_c;
-	size_t  m_m;
+	Matrixd       m_S2;
+	Vecd          m_e;
+	Vecd          m_c;
+	const size_t  m_m;
+};
+
+class EigenVec {
+public:
+	EigenVec(size_t n, size_t m, size_t cis) : m_X(n*cis), m_m(m), m_cis(cis) { }
+	
+	void run(
+		const TrMatrixd&  A, 
+		const Vecd&       stv, 
+		const Matrixd&    S2,
+		bool              dbg) 
+	{
+		const size_t n   = stv.size();
+		const size_t m   = m_m;
+		const size_t cis = m_cis;
+		Vecd v(stv);                             // v{n} = stv{n}  
+		Vecd v2(n), r(n);
+		flt* X = m_X.data();
+		flt  a, b, b2 = 0.0;
+
+		for (size_t k = 0; ; k++) {
+			const flt* S2k = S2.data() + k * cis;
+			for (size_t i = 0; i < n; i++) {
+				flt* Xi = X + i * cis;
+				for (size_t j = 0; j < cis; j++) {
+					Xi[j] += v[i] * S2k[j];
+				}
+			}
+			
+			if (k == m-1) {
+				break;
+			}
+			
+			if (k == 0) {
+				TrMatrixd::mulByVector(r, A, v); // r{n} = A{n}{n}  * v{n}
+			} else {
+				TrMatrixd::mulByVector(r, A, v); // r{n}  = A{n}{n} * v{n}
+				v2.mulByScalar(b2);              // v2{n} = b2{1}   * v2{n}
+				r.sub(v2);                       // r{n}  = r{n}    - v2{n}
+			}
+			
+			a = v.dotProduct(r);                 // a{1}  = SUM v[i]*r[i]
+			v2.mulByScalar(v, a);                // v2{n} = a{1} * v{n}
+			r.sub(v2);                           // r{n}  = r{n} - v2{n}
+			b = r.getNorm();                     // b{1}  = (SUM r[i]^2)^0.5
+			v2 = v;                              // v2{n} = v{n}
+			b2 = b;                              // b2{1} = b{1}
+			v.divByScalar(r, b);                 // EACH v[i] = r[i]/b
+		}
+
+		Vecd xv(cis, 0.0);
+
+		// xv is a vector of sums of squared elements in each column of X
+		for (size_t i = 0; i < n; i++) {
+			const flt* Xi = &X[i*cis];
+			for (size_t j = 0; j < cis; j++) {
+				xv[j] += Xi[j]*Xi[j];
+			}
+		}
+
+		for (size_t i = 0; i < cis; i++) {
+			// xv[i] = 1.0 / diag(X)[i] / sqrt(xv[i])
+			xv[i] = 1.0 / X[i*cis + i] / sqrt(xv[i]);
+		}
+
+		//TODO: Determine results of this and above operations
+		// mainly (see lancno.m):
+		//		X = X + v*S2(m,:);
+		//		X = X*diag(1./normc(X));
+		//Matrixd::mulByVector(X, X, xv);
+	}
+	
+	Matrixd       m_X;
+	const size_t  m_m;
+	const size_t  m_cis;
 };
 
 class LancznoSuite {
